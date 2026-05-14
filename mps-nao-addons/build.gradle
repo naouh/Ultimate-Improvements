@@ -15,8 +15,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 compileJava.options.release.set(6)
 compileJava.options.encoding = 'UTF-8'
 
-group = 'com.nao.mpsfix'
-archivesBaseName = 'mpsflightfix-cm'
+group = 'com.nao.mpsnaoaddons'
+archivesBaseName = 'mps-nao-addons'
 version = '1.0.0'
 
 String minecraftVersion = "1.4.7"
@@ -43,7 +43,7 @@ dependencies {
 jar {
 	manifest {
 		attributes(
-			'FMLCorePlugin': 'com.nao.mpsfix.FlightFixCorePlugin',
+			'FMLCorePlugin': 'com.nao.mpsnaoaddons.MpsNaoAddonsCorePlugin',
 			'FMLCorePluginContainsFMLMod': 'true'
 		)
 	}

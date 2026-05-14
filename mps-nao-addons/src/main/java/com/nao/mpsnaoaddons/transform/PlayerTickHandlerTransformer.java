@@ -1,4 +1,4 @@
-package com.nao.mpsfix.transform;
+package com.nao.mpsnaoaddons.transform;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -51,7 +51,7 @@ public class PlayerTickHandlerTransformer implements IClassTransformer {
         // Forge may pass either dot- or slash-form class names depending on the
         // transformer chain stage.
         if (!TARGET_DOT.equals(name) && !TARGET_SLASH.equals(name)) return bytes;
-        System.out.println("[MpsFlightFix] PlayerTickHandlerTransformer invoked on " + name);
+        System.out.println("[MpsNaoAddons] PlayerTickHandlerTransformer invoked on " + name);
 
         try {
             ClassReader cr = new ClassReader(bytes);
@@ -66,10 +66,10 @@ public class PlayerTickHandlerTransformer implements IClassTransformer {
 
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
-            System.out.println("[MpsFlightFix] Patched PlayerTickHandler.handle");
+            System.out.println("[MpsNaoAddons] Patched PlayerTickHandler.handle");
             return cw.toByteArray();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] PlayerTickHandler transform failed:");
+            System.err.println("[MpsNaoAddons] PlayerTickHandler transform failed:");
             t.printStackTrace();
             return bytes;
         }
@@ -93,7 +93,7 @@ public class PlayerTickHandlerTransformer implements IClassTransformer {
             }
             cursor = cursor.getNext();
         }
-        System.err.println("[MpsFlightFix] PlayerTickHandler.handle: anchor not found");
+        System.err.println("[MpsNaoAddons] PlayerTickHandler.handle: anchor not found");
     }
 
     private static void injectGroundCheck(MethodNode m, AbstractInsnNode anchor) {

@@ -1,4 +1,4 @@
-package com.nao.mpsfix.transform;
+package com.nao.mpsnaoaddons.transform;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.IClassTransformer;
  * Railcraft and Universal Electricity recognise the power tool as a valid
  * wrench when the OmniWrench module is the active mode.
  *
- * <p>The added methods delegate to {@link com.nao.mpsfix.OmniWrenchHelper},
+ * <p>The added methods delegate to {@link com.nao.mpsnaoaddons.OmniWrenchHelper},
  * which inspects {@code player.getHeldItem()} to decide whether the OmniWrench
  * mode is currently active. canX methods return that boolean. onX/wrenchUsed
  * methods drain energy and play the swing animation.
@@ -35,7 +35,7 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
     private static final String TARGET_OBF   = "net.machinemuse.powersuits.item.ItemPowerTool";
     private static final String TARGET_SLASH = "net/machinemuse/powersuits/item/ItemPowerTool";
 
-    private static final String HELPER       = "com/nao/mpsfix/OmniWrenchHelper";
+    private static final String HELPER       = "com/nao/mpsnaoaddons/OmniWrenchHelper";
     // Obfuscated 1.4.7 MC type internals — runtime expects these in descriptors.
     private static final String OBF_PLAYER   = "qx";
     private static final String OBF_ITEMSTK  = "ur";
@@ -48,7 +48,7 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
                 && !TARGET_SLASH.equals(name)) {
             return bytes;
         }
-        System.out.println("[MpsFlightFix] PowerToolInterfaceTransformer invoked on " + name);
+        System.out.println("[MpsNaoAddons] PowerToolInterfaceTransformer invoked on " + name);
 
         try {
             ClassReader cr = new ClassReader(bytes);
@@ -99,17 +99,17 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
             }
 
             if (addedInterfaces.isEmpty()) {
-                System.out.println("[MpsFlightFix] No wrench-side interfaces available — skipping ItemPowerTool patch");
+                System.out.println("[MpsNaoAddons] No wrench-side interfaces available — skipping ItemPowerTool patch");
                 return bytes;
             }
 
             // COMPUTE_MAXS only; see note in EntityPlayerTransformer.
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
-            System.out.println("[MpsFlightFix] ItemPowerTool now implements: " + addedInterfaces);
+            System.out.println("[MpsNaoAddons] ItemPowerTool now implements: " + addedInterfaces);
             return cw.toByteArray();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] PowerToolInterfaceTransformer failed:");
+            System.err.println("[MpsNaoAddons] PowerToolInterfaceTransformer failed:");
             t.printStackTrace();
             return bytes;
         }

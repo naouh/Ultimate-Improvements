@@ -1,4 +1,4 @@
-package com.nao.mpsfix.transform;
+package com.nao.mpsnaoaddons.transform;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -46,7 +46,7 @@ public class EntityPlayerTransformer implements IClassTransformer {
                 && !"net/minecraft/entity/player/EntityPlayer".equals(name)) {
             return bytes;
         }
-        System.out.println("[MpsFlightFix] EntityPlayerTransformer invoked on " + name);
+        System.out.println("[MpsNaoAddons] EntityPlayerTransformer invoked on " + name);
 
         try {
             ClassReader cr = new ClassReader(bytes);
@@ -61,7 +61,7 @@ public class EntityPlayerTransformer implements IClassTransformer {
             }
 
             if (patched == 0) {
-                System.err.println("[MpsFlightFix] EntityPlayer: airborne penalty pattern not found");
+                System.err.println("[MpsNaoAddons] EntityPlayer: airborne penalty pattern not found");
                 return bytes;
             }
 
@@ -70,10 +70,10 @@ public class EntityPlayerTransformer implements IClassTransformer {
             // Java 6 / MC 1.4.7 doesn't need StackMapTable frames anyway.
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
-            System.out.println("[MpsFlightFix] Patched " + patched + " variant(s) of EntityPlayer.getCurrentPlayerStrVsBlock");
+            System.out.println("[MpsNaoAddons] Patched " + patched + " variant(s) of EntityPlayer.getCurrentPlayerStrVsBlock");
             return cw.toByteArray();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] EntityPlayer transform failed:");
+            System.err.println("[MpsNaoAddons] EntityPlayer transform failed:");
             t.printStackTrace();
             return bytes;
         }
@@ -152,7 +152,7 @@ public class EntityPlayerTransformer implements IClassTransformer {
         InsnList li = new InsnList();
         li.add(new VarInsnNode(Opcodes.ALOAD, 0)); // this (EntityPlayer)
         li.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
-                "com/nao/mpsfix/AirStrideHelper",
+                "com/nao/mpsnaoaddons/AirStrideHelper",
                 "hasActiveModule",
                 "(L" + TARGET_OBF + ";)Z"));
         li.add(new InsnNode(Opcodes.IOR));

@@ -1,4 +1,4 @@
-package com.nao.mpsfix;
+package com.nao.mpsnaoaddons;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -18,19 +18,21 @@ import net.minecraftforge.common.MinecraftForge;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
- * Forge mod entry. Bytecode patches are installed by {@link FlightFixCorePlugin}
- * before any class loads. This class only registers the Air Stride module in
- * MPS' {@code ModuleManager} during PostInit.
+ * Forge mod entry. Bytecode patches are installed by
+ * {@link MpsNaoAddonsCorePlugin} before any class loads. This class registers
+ * the four MPS modules (Air Stride, OmniWrench, EU Reader, TE Multimeter) in
+ * MPS' {@code ModuleManager} during PostInit, and subscribes the right-click
+ * dispatcher during Init.
  *
  * <p>All MPS API calls go through reflection because the deployed MPS jar uses
  * MC obfuscated names in its method signatures, which Voldeloom's compile
  * classpath cannot resolve directly.
  */
-@Mod(modid = "MpsFlightFixCM",
-     name = "MPS Flight Fix (Coremod)",
+@Mod(modid = "MpsNaoAddons",
+     name = "MPS Nao Addons",
      version = "1.0.0",
      dependencies = "required-after:mmmPowersuits")
-public class MpsFlightFixMod {
+public class MpsNaoAddonsMod {
 
     @Init
     public void init(FMLInitializationEvent e) {
@@ -45,25 +47,25 @@ public class MpsFlightFixMod {
         try {
             registerAirStride();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] Failed to register Air Stride module:");
+            System.err.println("[MpsNaoAddons] Failed to register Air Stride module:");
             t.printStackTrace();
         }
         try {
             registerOmniWrench();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] Failed to register OmniWrench module:");
+            System.err.println("[MpsNaoAddons] Failed to register OmniWrench module:");
             t.printStackTrace();
         }
         try {
             registerEUReader();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] Failed to register EU Reader module:");
+            System.err.println("[MpsNaoAddons] Failed to register EU Reader module:");
             t.printStackTrace();
         }
         try {
             registerTEMultimeter();
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] Failed to register TE Multimeter module:");
+            System.err.println("[MpsNaoAddons] Failed to register TE Multimeter module:");
             t.printStackTrace();
         }
     }
@@ -127,7 +129,7 @@ public class MpsFlightFixMod {
         Method mAddModule = cConfig.getMethod("addModule", cIPowerModule);
         mAddModule.invoke(null, airStride);
 
-        System.out.println("[MpsFlightFix] Registered MPS module: " + AirStrideHelper.MODULE_NAME);
+        System.out.println("[MpsNaoAddons] Registered MPS module: " + AirStrideHelper.MODULE_NAME);
     }
 
     /**
@@ -194,13 +196,13 @@ public class MpsFlightFixMod {
             ItemStack wrenchStack = new ItemStack((Item) wrenchItem, 1);
             mAddCost.invoke(omniWrench, wrenchStack);
         } catch (Throwable t) {
-            System.err.println("[MpsFlightFix] OmniTools not installed — OmniWrench module install cost will be incomplete");
+            System.err.println("[MpsNaoAddons] OmniTools not installed — OmniWrench module install cost will be incomplete");
         }
 
         Method mAddModule = cConfig.getMethod("addModule", cIPowerModule);
         mAddModule.invoke(null, omniWrench);
 
-        System.out.println("[MpsFlightFix] Registered MPS module: " + OmniWrenchHelper.MODULE_NAME);
+        System.out.println("[MpsNaoAddons] Registered MPS module: " + OmniWrenchHelper.MODULE_NAME);
     }
 
     /** EU Reader: cheap meter for IC2 IEnergyTile flows. Same registration
@@ -288,6 +290,6 @@ public class MpsFlightFixMod {
         // The module class is generic; pull its name out for the log line.
         String name = (String) Class.forName("net.machinemuse.powersuits.powermodule.PowerModule")
                 .getMethod("getName").invoke(module);
-        System.out.println("[MpsFlightFix] Registered MPS module: " + name);
+        System.out.println("[MpsNaoAddons] Registered MPS module: " + name);
     }
 }

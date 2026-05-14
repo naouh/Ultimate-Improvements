@@ -1,4 +1,4 @@
-package com.nao.mpsfix;
+package com.nao.mpsnaoaddons;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;

@@ -1,4 +1,4 @@
-package com.nao.mpsfix;
+package com.nao.mpsnaoaddons;
 
 import java.lang.reflect.Method;
 import java.text.DecimalFormat;

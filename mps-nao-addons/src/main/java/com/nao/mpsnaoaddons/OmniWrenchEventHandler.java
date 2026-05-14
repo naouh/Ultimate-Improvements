@@ -1,4 +1,4 @@
-package com.nao.mpsfix;
+package com.nao.mpsnaoaddons;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -21,7 +21,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
  *
  * <p>OmniWrench's BC/Railcraft/TE-conduit support also goes through interface
  * methods bytecode-injected into ItemPowerTool by
- * {@link com.nao.mpsfix.transform.PowerToolInterfaceTransformer}; those run
+ * {@link com.nao.mpsnaoaddons.transform.PowerToolInterfaceTransformer}; those run
  * regardless of this listener.
  */
 public class OmniWrenchEventHandler {
