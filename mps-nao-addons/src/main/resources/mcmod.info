@@ -1,16 +1,16 @@
 [
   {
-    "modid": "CageControl",
-    "name": "CageControl",
-    "description": "Prevents Soul Cages from auto-spawning. Prompts for a name when activated, owner = player, control via /shard <name> start|stop.",
+    "modid": "MpsFlightFixCM",
+    "name": "MPS Nao Addons",
+    "description": "Coremod adding four modules to Modular Powersuits:\n- Air Stride (helmet): mine at full ground speed while airborne.\n- OmniWrench (power tool): rotate / harvest blocks; recognized as a wrench by BC, MFR, Railcraft and UE via bytecode-injected interfaces.\n- EU Reader (power tool): measure IC2 EU flow at IEnergyTile blocks.\n- TE Multimeter (power tool): delegates to Thermal Expansion's multimeter for conduit/tile readings.",
     "version": "1.0.0",
     "mcversion": "1.4.7",
-    "url": "",
+    "url": "https://github.com/naouh/Ultimate-Improvements",
     "updateUrl": "",
     "authors": ["Nao"],
-    "credits": "",
+    "credits": "Andrew2448 for EU Reader / TE Multimeter design; ChickenBones for OmniTools wrench behavior.",
     "parent": "",
     "screenshots": [],
-    "dependencies": ["SoulShards"]
+    "dependencies": ["mmmPowersuits"]
   }
 ]
