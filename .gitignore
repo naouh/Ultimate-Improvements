@@ -1,0 +1,32 @@
+# Top-level: ignore everything in mods-v2/ ...
+/*
+
+# ... then re-include the repo-tracked files and the 5 mod folders.
+!/.gitignore
+!/README.md
+!/cagecontrol/
+!/mpsflightfix/
+!/mps-nao-addons/
+!/neiae/
+!/translocator/
+
+# Per-mod ignores: gradle build outputs, IDE files, decompiled reference
+# sources, and third-party jars (those belong to their original authors
+# and shouldn't be redistributed from a public repo — see README for the
+# expected libs/ contents).
+**/build/
+**/.gradle/
+**/.idea/
+**/.vscode/
+**/*.iml
+**/run/
+**/decomp/
+**/libs/*.jar
+
+# Voldeloom / loom caches and temp jars
+**/.gradle/voldeloom-cache/
+**/build/voldeloom-cache/
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "CageControl",
+    "name": "CageControl",
+    "description": "Prevents Soul Cages from auto-spawning. Prompts for a name when activated, owner = player, control via /shard <name> start|stop.",
+    "version": "1.0.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "updateUrl": "",
+    "authors": ["Nao"],
+    "credits": "",
+    "parent": "",
+    "screenshots": [],
+    "dependencies": ["SoulShards"]
+  }
+]

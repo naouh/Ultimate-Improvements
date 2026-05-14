@@ -1,0 +1,15 @@
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		maven {
+			url 'https://repo.sleeping.town'
+			content {
+				includeGroup 'com.unascribed.nilgradle'
+				includeGroup 'com.unascribed'
+			}
+		}
+		mavenLocal()
+	}
+}
+
+rootProject.name = 'mpsflightfix'

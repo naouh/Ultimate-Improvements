@@ -1,0 +1,54 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.mpsfix'
+archivesBaseName = 'mpsflightfix-cm'
+version = '1.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+	flatDir {
+		dirs 'libs'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// MPS jar needed for compile-time references to its classes
+	// (PowerModule, ModuleManager, ItemComponent, etc.).
+	compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+// Coremod manifest: tells FML this jar contains an IFMLLoadingPlugin.
+jar {
+	manifest {
+		attributes(
+			'FMLCorePlugin': 'com.nao.mpsfix.FlightFixCorePlugin',
+			'FMLCorePluginContainsFMLMod': 'true'
+		)
+	}
+}
+
+volde {
+	// default config
+}

@@ -1,0 +1,10 @@
+@nilmod {
+	name: "MPS Flight Ground Fix";
+	description: "Disables MPS Flight Control thrust while the player is on the ground (eliminates the floaty/sliding feel). Surgical bytecode patch on net.machinemuse.powersuits.tick.PlayerTickHandler.";
+	authors: "Nao";
+	version: "${version}";
+}
+
+entrypoints {
+	premain: "com.nao.mpsflightfix.MpsFlightFixPremain";
+}

@@ -1,0 +1,44 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.cagecontrol'
+archivesBaseName = 'cagecontrol'
+version = '2.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+	flatDir {
+		dirs 'libs'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// SoulShards jar — referenced reflectively at runtime, no compile-time imports.
+	// Listed here so ItemStack/Item types resolve when reflectively scanning.
+	compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+volde {
+	// default config; nothing to override.
+}

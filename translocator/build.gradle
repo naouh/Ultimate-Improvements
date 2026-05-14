@@ -1,0 +1,46 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'codechicken.translocator'
+archivesBaseName = 'translocator'
+version = '1.1.0.3-1.4.7'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+	flatDir {
+		dirs 'libs'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// CodeChickenCore 1.4.7 is referenced via modCompileOnly so that
+	// Voldeloom remaps the obfuscated MC types in its bytecode to MCP names
+	// (yc -> World, qx -> EntityPlayer, etc.). This lets us call RayTracer
+	// etc. with clean MCP types from our source.
+	modCompileOnly files('libs/CodeChickenCore-0.8.1.6.jar')
+}
+
+volde {
+	// default config
+}
