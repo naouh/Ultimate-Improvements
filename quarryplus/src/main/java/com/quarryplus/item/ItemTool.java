@@ -9,43 +9,38 @@ import com.quarryplus.tile.TileMarker;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Icon;
 import net.minecraft.world.World;
 
 /**
  * Two-mode utility item.
  *
- * <p>Meta 0 = <b>StatusChecker</b> — right-click a machine to print its enchant levels and
- * current state to chat. Right-click a MarkerPlus to print the bounding box.
+ * <p>Meta 0 = <b>StatusChecker</b> — right-click a machine to print its enchant levels.
+ * Right-click a MarkerPlus to print the bounding box.
  *
- * <p>Meta 1 = <b>ListEditor</b> — opens the fortune/silktouch block list editor when used
- * on a QuarryPlus. Phase 6 polish wires the GUI; for Phase 5 the item just exists and
- * prints a placeholder message.
+ * <p>Meta 1 = <b>ListEditor</b> — opens the fortune/silktouch block list editor on a
+ * QuarryPlus. The GUI is deferred to Phase 6 polish; for now it prints a placeholder.
  */
 public class ItemTool extends Item {
 
-    private Icon iconStatusChecker;
-    private Icon iconListEditor;
-
     public ItemTool() {
-        super(Config.itemToolID - 256); // 1.4.7 item IDs are offset by 256 from block IDs
+        super(Config.itemToolID - 256);
         setHasSubtypes(true);
         setMaxDamage(0);
         setMaxStackSize(1);
-        setUnlocalizedName("qpTool");
+        setItemName("qpTool");
         setCreativeTab(QuarryPlusI.creativeTab);
+        setTextureFile("/mods/quarryplus/textures/items/items.png");
     }
 
     @Override
-    public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        // Default click — nothing to do; the per-block interaction lives in onItemUse.
-        return stack;
+    public int getIconFromDamage(int damage) {
+        // items.png layout: 0 = StatusChecker (x=0,y=0), 1 = ListEditor (x=1,y=0).
+        return damage;
     }
 
     @Override
@@ -53,50 +48,34 @@ public class ItemTool extends Item {
                              int x, int y, int z, int side,
                              float hx, float hy, float hz) {
         if (world.isRemote) return true;
-
         TileEntity te = world.getBlockTileEntity(x, y, z);
 
         if (stack.getItemDamage() == 0) {
-            // StatusChecker
             if (te instanceof TileMarker) {
                 TileMarker tm = (TileMarker) te;
                 if (!tm.linked) {
-                    player.addChatMessage("[MarkerPlus] not linked");
+                    player.sendChatToPlayer("[MarkerPlus] not linked");
                 } else {
-                    player.addChatMessage(String.format("[MarkerPlus] %d,%d,%d -> %d,%d,%d",
+                    player.sendChatToPlayer(String.format("[MarkerPlus] %d,%d,%d -> %d,%d,%d",
                             tm.xMin, tm.yMin, tm.zMin, tm.xMax, tm.yMax, tm.zMax));
                 }
                 return true;
             }
             if (te instanceof IEnchantableTile) {
                 IEnchantableTile et = (IEnchantableTile) te;
-                player.addChatMessage(String.format(
+                player.sendChatToPlayer(String.format(
                         "[QuarryPlus] Eff %d / Unb %d / Fort %d / Silk %s",
                         et.getEfficiencyLevel(), et.getUnbreakingLevel(),
                         et.getFortuneLevel(), et.getSilkTouch() ? "yes" : "no"));
                 return true;
             }
         } else if (stack.getItemDamage() == 1) {
-            // ListEditor — Phase 6 polish opens the GUI here.
             if (te instanceof IEnchantableTile) {
-                player.addChatMessage("[ListEditor] GUI lands in Phase 6 polish");
+                player.sendChatToPlayer("[ListEditor] GUI lands in Phase 6 polish");
                 return true;
             }
         }
         return false;
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public Icon getIconFromDamage(int damage) {
-        return damage == 0 ? iconStatusChecker : iconListEditor;
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IconRegister reg) {
-        iconStatusChecker = reg.registerIcon("compass");   // placeholder
-        iconListEditor    = reg.registerIcon("book_normal"); // placeholder
     }
 
     @Override
@@ -108,7 +87,7 @@ public class ItemTool extends Item {
     }
 
     @Override
-    public String getUnlocalizedName(ItemStack stack) {
+    public String getItemNameIS(ItemStack stack) {
         return stack.getItemDamage() == 0 ? "item.statusChecker" : "item.listEditor";
     }
 }

@@ -4,11 +4,8 @@ import com.quarryplus.Config;
 import com.quarryplus.QuarryPlusI;
 import com.quarryplus.tile.TileMarker;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
-import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
@@ -18,11 +15,8 @@ import net.minecraftforge.common.ForgeDirection;
 
 /**
  * Torch-shaped block that pairs with up to two other markers on the same axis to define a
- * bounding box (used by the QuarryPlus to set its mining area).
- *
- * <p>Mounted on the face of an adjacent solid block — the placement side is stored in the
- * tile's metadata to drive {@link #setBlockBoundsBasedOnState}. Drops itself if the mount
- * goes away (same behaviour as a vanilla torch).
+ * bounding box. Mounted on the face of an adjacent solid block — placement side is stored as
+ * metadata so the bounding-box renderer can orient the visible torch shape.
  */
 public class BlockMarker extends BlockContainer {
 
@@ -32,6 +26,8 @@ public class BlockMarker extends BlockContainer {
         setHardness(0.0f);
         setCreativeTab(QuarryPlusI.creativeTab);
         setBlockName("MarkerPlus");
+        setTextureFile("/mods/quarryplus/textures/blocks/marker.png");
+        this.blockIndexInTexture = 0;
     }
 
     @Override
@@ -41,11 +37,6 @@ public class BlockMarker extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        // Default cube renderer — the block draws as a small textured stub thanks to the
-        // bounds set in setBlockBoundsBasedOnState. The TESR ({@link
-        // com.quarryplus.render.RenderMarker}) overlays the box-edge wireframe on top when
-        // the marker is linked. A proper torch-shape ISimpleBlockRenderingHandler is a
-        // Phase 6 polish item.
         return 0;
     }
 
@@ -73,7 +64,7 @@ public class BlockMarker extends BlockContainer {
             case SOUTH: setBlockBounds(0.35f, 0.35f, 0.00f, 0.65f, 0.65f, 0.65f); break;
             case NORTH: setBlockBounds(0.35f, 0.35f, 0.35f, 0.65f, 0.65f, 1.00f); break;
             case EAST:  setBlockBounds(0.00f, 0.35f, 0.35f, 0.65f, 0.65f, 0.65f); break;
-            default:    setBlockBounds(0.35f, 0.35f, 0.35f, 1.00f, 0.65f, 0.65f); // WEST + UNKNOWN
+            default:    setBlockBounds(0.35f, 0.35f, 0.35f, 1.00f, 0.65f, 0.65f);
         }
     }
 
@@ -85,8 +76,8 @@ public class BlockMarker extends BlockContainer {
     }
 
     @Override
-    public int onBlockPlaced(World world, int x, int y, int z, int side, float hitX, float hitY, float hitZ, int meta) {
-        // Store the placement side as metadata for setBlockBoundsBasedOnState.
+    public int onBlockPlaced(World world, int x, int y, int z, int side,
+                             float hitX, float hitY, float hitZ, int meta) {
         return side;
     }
 
@@ -109,7 +100,7 @@ public class BlockMarker extends BlockContainer {
         int meta = world.getBlockMetadata(x, y, z);
         if (!canPlaceBlockOnSide(world, x, y, z, meta)) {
             dropBlockAsItem(world, x, y, z, meta, 0);
-            world.setBlockToAir(x, y, z);
+            world.setBlockWithNotify(x, y, z, 0);
         }
     }
 
@@ -118,22 +109,10 @@ public class BlockMarker extends BlockContainer {
                                     EntityPlayer player, int side,
                                     float hitX, float hitY, float hitZ) {
         if (world.isRemote) return true;
-
         TileEntity te = world.getBlockTileEntity(x, y, z);
-        if (!(te instanceof TileMarker)) return true;
-        TileMarker tm = (TileMarker) te;
-
-        // ItemTool meta 0 = StatusChecker — print the marker's bounding box.
-        // The status-checker class lands in Phase 5; until then we just route every click
-        // to the connection logic (which is the common case).
-        tm.tryConnection();
+        if (te instanceof TileMarker) {
+            ((TileMarker) te).tryConnection();
+        }
         return true;
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerIcons(IconRegister reg) {
-        // Texture lookup defers to vanilla until Phase 6 polish adds dedicated artwork.
-        this.blockIcon = reg.registerIcon("torch");
     }
 }

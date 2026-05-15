@@ -1,14 +1,12 @@
 package com.quarryplus.block;
 
 import com.quarryplus.Config;
+import com.quarryplus.InvUtils;
 import com.quarryplus.QuarryPlusI;
 import com.quarryplus.tile.TileMover;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
-import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.tileentity.TileEntity;
@@ -22,6 +20,8 @@ public class BlockMover extends BlockContainer {
         setResistance(10.0f);
         setBlockName("EnchantMover");
         setCreativeTab(QuarryPlusI.creativeTab);
+        setTextureFile("/mods/quarryplus/textures/blocks/mover_side.png");
+        this.blockIndexInTexture = 0;
     }
 
     @Override
@@ -35,8 +35,6 @@ public class BlockMover extends BlockContainer {
         if (world.isRemote) return true;
         TileEntity te = world.getBlockTileEntity(x, y, z);
         if (te instanceof IInventory) {
-            // Phase 5: vanilla 3-slot chest UI. Phase 6 polish adds the move-enchant button
-            // and per-slot validation.
             player.displayGUIChest((IInventory) te);
         }
         return true;
@@ -48,17 +46,9 @@ public class BlockMover extends BlockContainer {
         if (te instanceof IInventory) {
             IInventory inv = (IInventory) te;
             for (int i = 0; i < inv.getSizeInventory(); i++) {
-                if (inv.getStackInSlot(i) != null) {
-                    dropBlockAsItem_do(world, x, y, z, inv.getStackInSlot(i));
-                }
+                InvUtils.dropAt(world, x, y, z, inv.getStackInSlot(i));
             }
         }
         super.breakBlock(world, x, y, z, oldId, oldMeta);
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerIcons(IconRegister reg) {
-        this.blockIcon = reg.registerIcon("anvil_top_damaged_0");
     }
 }

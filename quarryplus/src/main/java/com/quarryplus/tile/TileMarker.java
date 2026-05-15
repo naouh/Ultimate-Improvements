@@ -11,8 +11,12 @@ import com.quarryplus.QuarryPlusI;
 import com.quarryplus.block.BlockMarker;
 
 import buildcraft.api.core.IAreaProvider;
+import com.quarryplus.QuarryPlus;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraftforge.common.ForgeChunkManager;
+import net.minecraftforge.common.ForgeChunkManager.Ticket;
 
 /**
  * Tile entity for {@link BlockMarker}.
@@ -36,6 +40,7 @@ public class TileMarker extends APacketTile implements IAreaProvider {
     public int xMin, yMin, zMin;
     public int xMax, yMax, zMax;
     public boolean poweredLaser;
+    private Ticket chunkTicket;
 
     // ----- public accessors (used by RenderMarker + future QuarryPlus area-provider hook) -----
     public int xMin() { return linked ? xMin : xCoord; }
@@ -59,7 +64,7 @@ public class TileMarker extends APacketTile implements IAreaProvider {
                     if (worldObj.getBlockId(x, y, z) == QuarryPlusI.blockMarker.blockID) {
                         int meta = worldObj.getBlockMetadata(x, y, z);
                         QuarryPlusI.blockMarker.dropBlockAsItem(worldObj, x, y, z, meta, 0);
-                        worldObj.setBlockToAir(x, y, z);
+                        worldObj.setBlockWithNotify(x, y, z, 0);
                     }
                 }
             }
@@ -87,6 +92,26 @@ public class TileMarker extends APacketTile implements IAreaProvider {
         linked = true;
         broadcastUpdate();
         propagateBoxToOtherMarkers();
+        requestChunkTicket();
+    }
+
+    private void requestChunkTicket() {
+        if (chunkTicket != null || worldObj == null || worldObj.isRemote) return;
+        chunkTicket = ForgeChunkManager.requestTicket(
+                QuarryPlus.instance, worldObj, ForgeChunkManager.Type.NORMAL);
+        if (chunkTicket == null) return;
+        NBTTagCompound data = chunkTicket.getModData();
+        data.setInteger("markerX", xCoord);
+        data.setInteger("markerY", yCoord);
+        data.setInteger("markerZ", zCoord);
+        ForgeChunkManager.forceChunk(chunkTicket,
+                new ChunkCoordIntPair(xCoord >> 4, zCoord >> 4));
+    }
+
+    private void releaseChunkTicket() {
+        if (chunkTicket == null) return;
+        ForgeChunkManager.releaseTicket(chunkTicket);
+        chunkTicket = null;
     }
 
     /**
@@ -178,6 +203,7 @@ public class TileMarker extends APacketTile implements IAreaProvider {
     @Override
     public void invalidate() {
         super.invalidate();
+        releaseChunkTicket();
         if (!linked || worldObj == null || worldObj.isRemote) return;
         // Tell the other markers in the box that the link is broken; they'll fall back to
         // unlinked rendering until a player right-clicks one of them again.

@@ -50,7 +50,6 @@ public class TileMover extends APowerTile implements IInventory {
     }
 
     @Override public String getInvName()                            { return "EnchantMover"; }
-    @Override public boolean isInvNameLocalized()                   { return false; }
     @Override public int getInventoryStackLimit()                   { return 1; }
     @Override public boolean isUseableByPlayer(EntityPlayer p)      {
         return worldObj.getBlockTileEntity(xCoord, yCoord, zCoord) == this
@@ -58,7 +57,6 @@ public class TileMover extends APowerTile implements IInventory {
     }
     @Override public void openChest()                                { }
     @Override public void closeChest()                               { }
-    @Override public boolean isItemValidForSlot(int slot, ItemStack s) { return true; }
 
     /** Move one enchantment from source (slot 0) to target (slot 1). Wired to GUI in Phase 6. */
     public boolean tryMove(int enchantId) {

@@ -155,7 +155,7 @@ public class TileQuarry extends APowerTile implements IEnchantableTile {
     private boolean stepMakeFrame() {
         digged = true;
         if (!PowerManager.useEnergyF(this, unbreaking)) return false;
-        worldObj.setBlock(targetX, targetY, targetZ, QuarryPlusI.blockFrame.blockID, 0, 3);
+        worldObj.setBlockAndMetadataWithNotify(targetX, targetY, targetZ, QuarryPlusI.blockFrame.blockID, 0);
         return true;
     }
 
@@ -191,13 +191,14 @@ public class TileQuarry extends APowerTile implements IEnchantableTile {
             drops = b.getBlockDropped(worldObj, x, y, z, meta, fortune);
         }
         if (drops != null) cacheItems.addAll(drops);
-        worldObj.setBlockToAir(x, y, z);
+        worldObj.setBlockWithNotify(x, y, z, 0);
         return true;
     }
 
     private void suckUpDrops(int x, int y, int z) {
-        AxisAlignedBB box = AxisAlignedBB.getAABBPool().getAABB(
-                x - 4, y - 4, z - 4, x + 6, y + 6, z + 6);
+        AxisAlignedBB box = AxisAlignedBB.getBoundingBox(
+                (double)(x - 4), (double)(y - 4), (double)(z - 4),
+                (double)(x + 6), (double)(y + 6), (double)(z + 6));
         @SuppressWarnings("rawtypes")
         List items = worldObj.getEntitiesWithinAABB(EntityItem.class, box);
         for (Object o : items) {

@@ -5,7 +5,6 @@ import buildcraft.api.power.IPowerReceptor;
 import buildcraft.api.power.PowerFramework;
 import buildcraft.api.power.PowerProvider;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.World;
 
 /**
  * Abstract parent for power-consuming tiles. Plugs into BuildCraft 3.x via
@@ -60,7 +59,6 @@ public abstract class APowerTile extends APacketTile implements IPowerReceptor {
     // ----- IPowerReceptor -----
     @Override public void setPowerProvider(IPowerProvider provider) { this.powerProvider = provider; }
     @Override public IPowerProvider getPowerProvider()              { return powerProvider; }
-    @Override public World getWorld()                                { return worldObj; }
     @Override public int powerRequest()                              {
         return (int) Math.min(powerProvider.getMaxEnergyReceived(),
                               powerProvider.getMaxEnergyStored() - powerProvider.getEnergyStored());
@@ -76,16 +74,16 @@ public abstract class APowerTile extends APacketTile implements IPowerReceptor {
     @Override
     public void writeToNBT(NBTTagCompound tag) {
         super.writeToNBT(tag);
-        NBTTagCompound pp = new NBTTagCompound();
-        if (powerProvider != null) PowerFramework.currentFramework.savePowerProvider(powerProvider, pp);
-        tag.setCompoundTag("powerProvider", pp);
+        if (powerProvider != null) PowerFramework.currentFramework.savePowerProvider(this, tag);
     }
 
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
-        if (powerProvider != null) {
-            PowerFramework.currentFramework.loadPowerProvider(powerProvider, tag.getCompoundTag("powerProvider"));
+        PowerFramework.currentFramework.loadPowerProvider(this, tag);
+        if (powerProvider == null) {
+            powerProvider = PowerFramework.currentFramework.createPowerProvider();
+            powerProvider.configure(0, 0, 100, 0, 1000);
         }
     }
 }

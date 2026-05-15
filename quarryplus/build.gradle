@@ -35,8 +35,10 @@ dependencies {
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 
 	// BuildCraft 3.x API + IC2 API jars expected in libs/.
-	// See README for the exact files to drop.
-	compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+	// modCompileOnly lets Voldeloom remap the obfuscated MC types referenced inside the
+	// BC bytecode (bq -> NBTTagCompound, yc -> World, etc.) so we can call BC APIs with
+	// clean MCP names from our source.
+	modCompileOnly files('libs/buildcraft-A-1.4.7-3.4.6.jar')
 }
 
 volde {

@@ -9,6 +9,7 @@ import java.io.IOException;
 import com.quarryplus.QuarryPlus;
 
 import cpw.mods.fml.common.network.PacketDispatcher;
+import cpw.mods.fml.common.network.Player;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
@@ -48,7 +49,7 @@ public abstract class APacketTile extends TileEntity {
 
     @Override
     public void onDataPacket(INetworkManager net, Packet132TileEntityData pkt) {
-        this.readFromNBT(pkt.data);
+        this.readFromNBT(pkt.customParam1);
     }
 
     /**
@@ -88,7 +89,7 @@ public abstract class APacketTile extends TileEntity {
 
     public void sendToPlayer(byte type, byte[] payload, EntityPlayer p) {
         if (p instanceof EntityPlayerMP) {
-            PacketDispatcher.sendPacketToPlayer(buildPacket(type, payload), (EntityPlayerMP) p);
+            PacketDispatcher.sendPacketToPlayer(buildPacket(type, payload), (Player) p);
         }
     }
 

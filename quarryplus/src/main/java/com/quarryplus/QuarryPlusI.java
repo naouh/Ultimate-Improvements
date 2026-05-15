@@ -47,6 +47,9 @@ public final class QuarryPlusI {
         PowerManager.loadConfiguration(Config.cfg);
         Config.cfg.save();
 
+        net.minecraftforge.common.ForgeChunkManager.setForcedChunkLoadingCallback(
+                QuarryPlus.instance, new ChunkLoadingHandler());
+
         blockMarker    = new BlockMarker();
         blockFrame     = new BlockFrame();
         blockQuarry    = new BlockQuarry();
@@ -79,37 +82,37 @@ public final class QuarryPlusI {
         // the cross-machine recipes (mover, quarry, markers via workbench cost).
         GameRegistry.addRecipe(new ItemStack(blockWorkbench),
                 "III", "GDG", "RRR",
-                'I', Block.blockIron,
+                'I', Block.blockSteel,
                 'G', Block.blockGold,
                 'D', Item.diamond,
                 'R', Item.redstone);
 
         // The remaining recipes (Marker, Quarry, Mover, ItemTool subtypes) are intended to
         // go through the WorkbenchPlus MJ-craft loop. WorkbenchRecipe entries live here:
-        WorkbenchRecipe.addRecipe(new ItemStack(blockMarker), 20_000,
+        WorkbenchRecipe.addRecipe(new ItemStack(blockMarker), 20000,
                 new ItemStack(Item.redstone, 300),
                 new ItemStack(Item.dyePowder, 300, 4),
                 new ItemStack(Item.goldNugget, 175),
                 new ItemStack(Item.ingotIron, 150),
                 new ItemStack(Item.lightStoneDust, 50),
                 new ItemStack(Item.enderPearl, 10));
-        WorkbenchRecipe.addRecipe(new ItemStack(blockQuarry), 320_000,
+        WorkbenchRecipe.addRecipe(new ItemStack(blockQuarry), 320000,
                 new ItemStack(Item.diamond, 800),
                 new ItemStack(Item.ingotGold, 800),
                 new ItemStack(Item.ingotIron, 1600),
                 new ItemStack(Item.redstone, 400),
                 new ItemStack(Item.enderPearl, 50));
-        WorkbenchRecipe.addRecipe(new ItemStack(blockMover), 320_000,
+        WorkbenchRecipe.addRecipe(new ItemStack(blockMover), 320000,
                 new ItemStack(Block.obsidian, 1600),
                 new ItemStack(Item.diamond, 800),
                 new ItemStack(Item.redstone, 1200),
                 new ItemStack(Item.enderPearl, 25));
-        WorkbenchRecipe.addRecipe(new ItemStack(itemTool, 1, 0), 80_000,
+        WorkbenchRecipe.addRecipe(new ItemStack(itemTool, 1, 0), 80000,
                 new ItemStack(Item.ingotGold, 400),
                 new ItemStack(Item.ingotIron, 600),
                 new ItemStack(Item.diamond, 100),
                 new ItemStack(Item.redstone, 400));
-        WorkbenchRecipe.addRecipe(new ItemStack(itemTool, 1, 1), 160_000,
+        WorkbenchRecipe.addRecipe(new ItemStack(itemTool, 1, 1), 160000,
                 new ItemStack(Item.ingotIron, 400),
                 new ItemStack(Item.paper, 1600),
                 new ItemStack(Item.feather, 50));
