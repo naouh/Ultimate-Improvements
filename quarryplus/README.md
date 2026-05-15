@@ -36,15 +36,19 @@ Power: **BuildCraft 3.x MJ** only. No RF (doesn't exist in 1.4.7), no EU.
 
 ## Status
 
-**🚧 In development.** Phase 3/6 complete:
+**🛠️ Code-complete pending in-game test.** Phase 5/6 mostly landed; the missing pieces are
+custom GUIs (Workbench/Mover use the vanilla chest UI as a placeholder), the actual auto-craft
+loop inside `TileWorkbench` (recipe registry exists, the consumption tick is a stub), and
+ForgeChunkManager wiring on the markers (they currently unload with their chunks).
 
 - [x] **Phase 0** — skeleton (`build.gradle`, `settings.gradle`, dir tree, gradle wrapper)
 - [x] **Phase 1** — decompile reference jar (CFR → `src-decomp/sources/`, 90 classes), final scope locked
-- [x] **Phase 2** — foundation: `QuarryPlus` mod class, proxies, `Config` (block/item IDs), packet handler skeleton
-- [x] **Phase 3** — MarkerPlus: `BlockMarker`, `TileMarker` (full link-scanning), `RenderMarker` (immediate-mode wireframe), `APacketTile` parent class
-- [ ] **Phase 4** — QuarryPlus core: `TileQuarry`, `BlockQuarry`, frame builder, GUI, `PowerManager` (BC 3.x MJ port)
-- [ ] **Phase 5** — WorkbenchPlus + EnchantMover + ListEditor + StatusChecker
-- [ ] **Phase 6** — polish + in-game test on Ultimate Remastered
+- [x] **Phase 2** — foundation: `QuarryPlus` mod class, proxies, `Config`, packet handler
+- [x] **Phase 3** — MarkerPlus: `BlockMarker`, `TileMarker` (full link-scanning + IAreaProvider), `RenderMarker` (immediate-mode wireframe), `APacketTile` parent class
+- [x] **Phase 4** — QuarryPlus core: `PowerManager` (BC 3.x MJ port), `APowerTile`, `IEnchantableTile`, `BlockFrame`, `BlockQuarry`, `ItemBlockQuarry`, `TileQuarry` (full state machine: MAKEFRAME → NOTNEEDBREAK → MOVEHEAD → BREAKBLOCK, NBT enchant preservation, drops pushed into adjacent inventories), `EnchantmentHelper`
+- [x] **Phase 5** — `BlockWorkbench` + `TileWorkbench` (27-slot inventory, vanilla chest GUI), `BlockMover` + `TileMover` (3-slot inventory + `tryMove(int enchantId)` enchantment-transfer API), `ItemTool` (StatusChecker meta 0 / ListEditor meta 1), `WorkbenchRecipe` registry with all the cross-machine recipes
+- [x] **Phase 6** — lang file, IAreaProvider on `TileMarker` (so the quarry can read marker pairs), Block/Item recipes
+- [ ] **Phase 6 carry-over** — custom GUIs (Workbench/Mover), `TileWorkbench.craft()` loop, ForgeChunkManager on `TileMarker`, real drill-animation `RenderQuarry`, dedicated textures
 
 ## Build dependencies (`libs/`)
 

@@ -10,6 +10,7 @@ import com.quarryplus.PacketHandler;
 import com.quarryplus.QuarryPlusI;
 import com.quarryplus.block.BlockMarker;
 
+import buildcraft.api.core.IAreaProvider;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -29,7 +30,7 @@ import net.minecraft.nbt.NBTTagCompound;
  * relative to the pair's row, and so on. The recursion is bounded by the axis check
  * ({@code xMax == xMin} stops further X scans).
  */
-public class TileMarker extends APacketTile {
+public class TileMarker extends APacketTile implements IAreaProvider {
 
     public boolean linked;
     public int xMin, yMin, zMin;
@@ -43,6 +44,27 @@ public class TileMarker extends APacketTile {
     public int xMax() { return linked ? xMax : xCoord; }
     public int yMax() { return linked ? yMax : yCoord; }
     public int zMax() { return linked ? zMax : zCoord; }
+
+    /**
+     * BC IAreaProvider hook — called by the QuarryPlus when it consumes this marker pair to
+     * define its work area. We tear down every marker in the box (and ourselves) and let the
+     * blocks drop as items.
+     */
+    @Override
+    public void removeFromWorld() {
+        if (!linked || worldObj == null || worldObj.isRemote) return;
+        for (int x = xMin; x <= xMax; x++) {
+            for (int y = yMin; y <= yMax; y++) {
+                for (int z = zMin; z <= zMax; z++) {
+                    if (worldObj.getBlockId(x, y, z) == QuarryPlusI.blockMarker.blockID) {
+                        int meta = worldObj.getBlockMetadata(x, y, z);
+                        QuarryPlusI.blockMarker.dropBlockAsItem(worldObj, x, y, z, meta, 0);
+                        worldObj.setBlockToAir(x, y, z);
+                    }
+                }
+            }
+        }
+    }
 
     // ===== Connection logic =====
 
