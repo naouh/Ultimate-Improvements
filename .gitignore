@@ -4,6 +4,7 @@
 # ... then re-include the repo-tracked files and the 5 mod folders.
 !/.gitignore
 !/README.md
+!/docs/
 !/cagecontrol/
 !/mpsflightfix/
 !/mps-nao-addons/
