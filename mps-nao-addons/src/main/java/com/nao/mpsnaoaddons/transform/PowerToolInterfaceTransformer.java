@@ -35,11 +35,20 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
     private static final String TARGET_OBF   = "net.machinemuse.powersuits.item.ItemPowerTool";
     private static final String TARGET_SLASH = "net/machinemuse/powersuits/item/ItemPowerTool";
 
-    private static final String HELPER       = "com/nao/mpsnaoaddons/OmniWrenchHelper";
+    private static final String HELPER          = "com/nao/mpsnaoaddons/OmniWrenchHelper";
+    private static final String ME_HELPER       = "com/nao/mpsnaoaddons/MEWirelessHelper";
     // Obfuscated 1.4.7 MC type internals — runtime expects these in descriptors.
     private static final String OBF_PLAYER   = "qx";
     private static final String OBF_ITEMSTK  = "ur";
+    private static final String OBF_WORLD    = "yc";
     private static final String OBF_MINECART = "py";
+
+    /** Obf name for Item.onItemRightClick(ItemStack, World, EntityPlayer)
+     *  in MC 1.4.7. Same descriptor as Item.onEaten — but the JVM
+     *  dispatches by full signature, so they don't collide. */
+    private static final String OBF_ON_RIGHT_CLICK = "a";
+    private static final String OBF_ON_RIGHT_CLICK_DESC =
+            "(L" + OBF_ITEMSTK + ";L" + OBF_WORLD + ";L" + OBF_PLAYER + ";)L" + OBF_ITEMSTK + ";";
 
     @Override
     public byte[] transform(String name, byte[] bytes) {
@@ -98,7 +107,17 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
                 addedSummary.add("canWhack/onWhack/canLink/onLink/canBoost/onBoost");
             }
 
-            if (addedInterfaces.isEmpty()) {
+            // Always add an onItemRightClick override that dispatches to
+            // MEWirelessHelper. Forge 1.4.7's PlayerInteractEvent.RIGHT_CLICK_AIR
+            // does not fire server-side reliably, so we can't depend on the
+            // event listener path — we have to override the method directly so
+            // the ME Wireless module works when right-clicking in open air.
+            if (!hasMethod(cn, OBF_ON_RIGHT_CLICK, OBF_ON_RIGHT_CLICK_DESC)) {
+                cn.methods.add(makeOnRightClickMethod());
+                addedSummary.add("onItemRightClick (ME Wireless dispatch)");
+            }
+
+            if (addedInterfaces.isEmpty() && addedSummary.isEmpty()) {
                 System.out.println("[MpsNaoAddons] No wrench-side interfaces available — skipping ItemPowerTool patch");
                 return bytes;
             }
@@ -221,6 +240,35 @@ public class PowerToolInterfaceTransformer implements IClassTransformer {
         m.visitMethodInsn(Opcodes.INVOKESTATIC, HELPER,
                 "isOmniWrenchModeActive", "(L" + OBF_PLAYER + ";)Z");
         m.visitInsn(Opcodes.IRETURN);
+        return m;
+    }
+
+    /**
+     * {@code public ItemStack onItemRightClick(ItemStack stack, World w, EntityPlayer p) {
+     *     MEWirelessHelper.handleRightClickAir(stack, w, p);
+     *     return stack;
+     * }}
+     *
+     * <p>Method name {@code a} matches MC 1.4.7's obfuscated
+     * {@code Item.onItemRightClick}. MC's air-click path resolves this entry
+     * on the held item's v-table, so our override fires regardless of whether
+     * Forge's RIGHT_CLICK_AIR event made it through.
+     */
+    private static MethodNode makeOnRightClickMethod() {
+        MethodNode m = new MethodNode(
+                Opcodes.ACC_PUBLIC,
+                OBF_ON_RIGHT_CLICK,
+                OBF_ON_RIGHT_CLICK_DESC,
+                null, null);
+        m.visitVarInsn(Opcodes.ALOAD, 1); // stack
+        m.visitVarInsn(Opcodes.ALOAD, 2); // world
+        m.visitVarInsn(Opcodes.ALOAD, 3); // player
+        m.visitMethodInsn(Opcodes.INVOKESTATIC, ME_HELPER,
+                "handleRightClickAir",
+                "(L" + OBF_ITEMSTK + ";L" + OBF_WORLD + ";L" + OBF_PLAYER + ";)V");
+        // Return the unchanged stack (matches Item's default behaviour).
+        m.visitVarInsn(Opcodes.ALOAD, 1);
+        m.visitInsn(Opcodes.ARETURN);
         return m;
     }
 

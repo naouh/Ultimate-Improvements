@@ -31,7 +31,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 @Mod(modid = "MpsNaoAddons",
      name = "MPS Nao Addons",
      version = "1.0.0",
-     dependencies = "required-after:mmmPowersuits")
+     dependencies = "required-after:mmmPowersuits;after:AppliedEnergistics")
 public class MpsNaoAddonsMod {
 
     @Init
@@ -66,6 +66,12 @@ public class MpsNaoAddonsMod {
             registerTEMultimeter();
         } catch (Throwable t) {
             System.err.println("[MpsNaoAddons] Failed to register TE Multimeter module:");
+            t.printStackTrace();
+        }
+        try {
+            registerMEWireless();
+        } catch (Throwable t) {
+            System.err.println("[MpsNaoAddons] Failed to register ME Wireless Terminal module:");
             t.printStackTrace();
         }
     }
@@ -178,6 +184,8 @@ public class MpsNaoAddonsMod {
               + "as a wrench for BC pipes, Railcraft track and TE conduits. "
               + "Costs 100 J per rotation, 500 J to pick up an IC2 machine.");
 
+        applyItemIcon(omniWrench, CustomIconRenderer.buildOmniWrenchIcon());
+
         // Install cost: 1 OmniWrench + 2 Field Emitter.
         Method mAddCost = cRCPowerModule.getMethod("addInstallCost", ItemStack.class);
         Method mResize  = cConfig.getMethod("copyAndResize", ItemStack.class, int.class);
@@ -214,10 +222,30 @@ public class MpsNaoAddonsMod {
                 "Channels IC2's EC Meter through your power tool. Right-click an IC2 "
               + "machine or cable twice — the second click reports average EU/t in, out "
               + "and net, over the elapsed window.");
+        applyItemIcon(module, CustomIconRenderer.buildEUReaderIcon());
         addCost(module, "controlCircuit", 4);
         ItemStack ecMeter = EUReaderHelper.getEcMeterStack();
         if (ecMeter != null) {
             addCostStack(module, ecMeter);
+        }
+        registerModule(module);
+    }
+
+    /** ME Wireless Terminal: channels AE's wireless terminal through the
+     *  power tool. Install cost: 1 AE Wireless Access Terminal + 4 Field
+     *  Emitters. Linking goes through patched AE classes — see
+     *  {@link com.nao.mpsnaoaddons.transform.MEWirelessAccessTransformer}. */
+    private void registerMEWireless() throws Exception {
+        Object module = buildToolModule(MEWirelessHelper.MODULE_NAME, "INDICATOR_1_BLUE",
+                "Channels Applied Energistics' wireless access terminal "
+              + "through your power tool. Drop the tool in an ME Controller's "
+              + "wireless slot to link, then right-click anywhere to open the "
+              + "ME GUI for that network from up to wireless range.");
+        applyItemIcon(module, CustomIconRenderer.buildMEWirelessIcon());
+        addCost(module, "fieldEmitter", 4);
+        ItemStack wireless = MEWirelessHelper.getWirelessTerminalStack();
+        if (wireless != null) {
+            addCostStack(module, wireless);
         }
         registerModule(module);
     }
@@ -229,6 +257,7 @@ public class MpsNaoAddonsMod {
                 "Channels TE's multimeter through your power tool. Right-click an "
               + "energy conduit, liquiduit, or powered tile to print its current "
               + "saturation, throughput or energy request to your chat.");
+        applyItemIcon(module, CustomIconRenderer.buildTEMultimeterIcon());
         addCost(module, "controlCircuit", 4);
         // The TE multimeter itself as install cost; the helper finds it by
         // class-instance scan since GameRegistry.findItemStack is 1.5+.
@@ -278,6 +307,20 @@ public class MpsNaoAddonsMod {
                 .getMethod("copyAndResize", ItemStack.class, int.class)
                 .invoke(null, base, Integer.valueOf(n));
         cRCPowerModule.getMethod("addInstallCost", ItemStack.class).invoke(module, sized);
+    }
+
+    /** Swap the module's MuseIcon for an {@link ItemMuseIcon} so the patched
+     *  {@code MuseRenderer.drawIconAt}/{@code drawIconPartial} renders the
+     *  actual item texture wherever the module's icon would have been drawn
+     *  (Tinker Table grid + mode-switcher HUD). No-op if {@code icon} is null
+     *  — that happens when the host mod (OmniTools / IC2 / TE / AE) isn't
+     *  installed, in which case the install cost would be unsatisfiable
+     *  anyway and the MuseIcon fallback is fine. */
+    private void applyItemIcon(Object module, ItemMuseIcon icon) throws Exception {
+        if (icon == null) return;
+        Class<?> cPowerModule = Class.forName("net.machinemuse.powersuits.powermodule.PowerModule");
+        Class<?> cMuseIcon    = Class.forName("net.machinemuse.general.gui.MuseIcon");
+        cPowerModule.getMethod("setIcon", cMuseIcon).invoke(module, icon);
     }
 
     /** Add a literal ItemStack as install cost (no resize). */

@@ -29,8 +29,8 @@ public class GuiTinkerTableTransformer implements IClassTransformer {
     private static final String TARGET_DOT   = "net.machinemuse.powersuits.block.GuiTinkerTable";
     private static final String TARGET_SLASH = "net/machinemuse/powersuits/block/GuiTinkerTable";
 
-    private static final int NEW_X = 320;
-    private static final int NEW_Y = 220;
+    private static final int NEW_X = 384;
+    private static final int NEW_Y = 232;
 
     @Override
     public byte[] transform(String name, byte[] bytes) {

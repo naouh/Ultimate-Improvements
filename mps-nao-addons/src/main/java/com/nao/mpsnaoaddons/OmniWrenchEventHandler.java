@@ -28,7 +28,6 @@ public class OmniWrenchEventHandler {
 
     @ForgeSubscribe
     public void onRightClick(PlayerInteractEvent event) {
-        if (event.action != Action.RIGHT_CLICK_BLOCK) return;
         EntityPlayer player = event.entityPlayer;
         if (player == null) return;
         ItemStack held = player.getHeldItem();
@@ -36,6 +35,23 @@ public class OmniWrenchEventHandler {
         World world = player.worldObj;
         if (world == null || world.isRemote) return;
 
+        Action action = event.action;
+        if (action == Action.RIGHT_CLICK_BLOCK) {
+            handleBlockClick(event, player, world, held);
+        } else if (action == Action.RIGHT_CLICK_AIR) {
+            handleAirClick(event, player, world, held);
+        }
+    }
+
+    /**
+     * Block-context modules: OmniWrench (rotate), EU Reader (IC2 tile),
+     * TE Multimeter (TE conduits). ME Wireless is intentionally NOT in here
+     * — the wireless terminal is an air-click feature, and dispatching it on
+     * block right-click would steal click events from chests/levers/whatever
+     * the player is actually trying to interact with.
+     */
+    private void handleBlockClick(PlayerInteractEvent event, EntityPlayer player,
+                                  World world, ItemStack held) {
         // Order: check the cheaper / more specific modules first so a player
         // who somehow has multiple modes active gets predictable behaviour.
         // In practice only one can be active at a time (MPS' getActiveMode
@@ -62,6 +78,17 @@ public class OmniWrenchEventHandler {
                      * 1.4.7; TE's multimeter doesn't actually use them, so
                      * zero is fine. */
                     0.0f, 0.0f, 0.0f, held)) {
+                cancelClick(event, player);
+            }
+        }
+    }
+
+    /** Air-context module dispatch. Only ME Wireless cares about air clicks
+     *  — AE's terminal opens the GUI from any open-air right-click. */
+    private void handleAirClick(PlayerInteractEvent event, EntityPlayer player,
+                                World world, ItemStack held) {
+        if (MEWirelessHelper.isActiveOnPowerTool(held)) {
+            if (MEWirelessHelper.handleClick(player, world, held)) {
                 cancelClick(event, player);
             }
         }

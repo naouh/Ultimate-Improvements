@@ -36,6 +36,7 @@ public final class OmniWrenchHelper {
     public static final double ENERGY_INTERFACE_USE = 100.0;
 
     private static Method mItemHasActiveModule;
+    private static Method mItemHasModule;
     private static Method mDischarge;
     private static Method mGetJoules;
     private static Class<?> cIWrenchable;
@@ -53,6 +54,8 @@ public final class OmniWrenchHelper {
         try {
             Class<?> util = Class.forName("net.machinemuse.api.MuseItemUtils");
             mItemHasActiveModule = util.getMethod("itemHasActiveModule",
+                    ItemStack.class, String.class);
+            mItemHasModule = util.getMethod("itemHasModule",
                     ItemStack.class, String.class);
         } catch (Throwable t) {
             System.err.println("[OmniWrench] MPS MuseItemUtils not found");
@@ -133,6 +136,22 @@ public final class OmniWrenchHelper {
         if (mItemHasActiveModule == null) return false;
         try {
             Object result = mItemHasActiveModule.invoke(null, stack, moduleName);
+            return Boolean.TRUE.equals(result);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Same as {@link #hasActiveModule} but checks whether the module is
+     *  INSTALLED (regardless of whether it's the currently-selected mode).
+     *  Used for things like ME Wireless linking, where the player shouldn't
+     *  have to switch the power tool's active mode just to bind it. */
+    public static boolean hasModule(ItemStack stack, String moduleName) {
+        if (stack == null) return false;
+        init();
+        if (mItemHasModule == null) return false;
+        try {
+            Object result = mItemHasModule.invoke(null, stack, moduleName);
             return Boolean.TRUE.equals(result);
         } catch (Throwable t) {
             return false;
