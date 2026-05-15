@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "QuarryPlus",
+    "name": "QuarryPlus",
+    "description": "1.4.7 backport of yogpstop's QuarryPlus 2.1.1. Adds an enhanced enchantable quarry, long-range markers, an NBT-aware workbench and an enchantment mover. Power: BuildCraft 3.x MJ only.",
+    "version": "0.1.0-1.4.7",
+    "mcversion": "1.4.7",
+    "url": "https://github.com/naouh/Ultimate-Improvements",
+    "credits": "Originally by yogpstop (https://github.com/yogpstop/QuarryPlus). Backported by Naouh.",
+    "authors": [ "yogpstop", "Naouh" ],
+    "dependencies": [ "after:BuildCraft|Core" ]
+  }
+]

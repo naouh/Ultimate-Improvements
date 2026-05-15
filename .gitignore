@@ -9,6 +9,7 @@
 !/mpsflightfix/
 !/mps-nao-addons/
 !/neiae/
+!/quarryplus/
 !/translocator/
 
 # Per-mod ignores: gradle build outputs, IDE files, decompiled reference
@@ -22,6 +23,7 @@
 **/*.iml
 **/run/
 **/decomp/
+**/src-decomp/
 **/libs/*.jar
 
 # Voldeloom / loom caches and temp jars
