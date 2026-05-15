@@ -207,13 +207,18 @@ public class MpsNaoAddonsMod {
 
     /** EU Reader: cheap meter for IC2 IEnergyTile flows. Same registration
      *  pattern as OmniWrench but uses INDICATOR_1_GREEN (no good wrench icon
-     *  in the MuseIcon set, so we reuse one). Install cost: 2 Control Circuits. */
+     *  in the MuseIcon set, so we reuse one). Install cost: 4 Control Circuits
+     *  + 1 IC2 EU-Reader (ecMeter). */
     private void registerEUReader() throws Exception {
         Object module = buildToolModule(EUReaderHelper.MODULE_NAME, "INDICATOR_1_GREEN",
                 "Channels IC2's EC Meter through your power tool. Right-click an IC2 "
               + "machine or cable twice — the second click reports average EU/t in, out "
               + "and net, over the elapsed window.");
-        addCost(module, "controlCircuit", 2);
+        addCost(module, "controlCircuit", 4);
+        ItemStack ecMeter = EUReaderHelper.getEcMeterStack();
+        if (ecMeter != null) {
+            addCostStack(module, ecMeter);
+        }
         registerModule(module);
     }
 

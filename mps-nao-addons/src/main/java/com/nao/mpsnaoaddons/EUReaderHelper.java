@@ -30,6 +30,7 @@ public final class EUReaderHelper {
     private static Method   mGetForWorld;
     private static Method   mGetTotalEmitted;
     private static Method   mGetTotalSunken;
+    private static ItemStack ecMeterStack;
     private static boolean  inited = false;
 
     private EUReaderHelper() {}
@@ -48,6 +49,28 @@ public final class EUReaderHelper {
         } catch (Throwable t) {
             System.err.println("[EUReader] IC2 API not found; module will be inert");
         }
+        // EU-Reader (IC2's "ecMeter") install-cost item. ic2.api.Items.getItem
+        // returns the actual ItemStack via reflection on Ic2Items.ecMeter, so
+        // we get whatever copy IC2 was configured with.
+        try {
+            Class<?> cItems = Class.forName("ic2.api.Items");
+            Method mGetItem = cItems.getMethod("getItem", String.class);
+            Object stack = mGetItem.invoke(null, "ecMeter");
+            if (stack instanceof ItemStack) {
+                ecMeterStack = (ItemStack) stack;
+            } else {
+                System.err.println("[EUReader] ic2.api.Items.getItem(\"ecMeter\") returned null; install cost will be incomplete");
+            }
+        } catch (Throwable t) {
+            System.err.println("[EUReader] IC2 Items API not found; ecMeter install cost will be skipped");
+        }
+    }
+
+    /** Exposed for the registration code so we charge the EU-Reader (IC2
+     *  ecMeter) as an install cost on the module. */
+    public static ItemStack getEcMeterStack() {
+        init();
+        return ecMeterStack;
     }
 
     public static boolean isActiveOnPowerTool(ItemStack stack) {
