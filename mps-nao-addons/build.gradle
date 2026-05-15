@@ -52,3 +52,23 @@ jar {
 volde {
 	// default config
 }
+
+// After every successful build, drop the remapped jar into the PrismLauncher
+// "Ultimate Remastered" instance's coremods folder so we can test without an
+// extra manual copy. The remapped artifact is the one without the -dev suffix
+// (remapJarForRelease produces it from the -dev jar).
+task installToCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Coremods deploy dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToCoremods

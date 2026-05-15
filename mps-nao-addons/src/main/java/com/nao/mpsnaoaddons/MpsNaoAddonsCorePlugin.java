@@ -9,7 +9,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * attribute, instantiates this class before any mod is constructed, and
  * registers the transformers returned by {@link #getASMTransformerClass()}.
  *
- * <p>Three transformers fire on JVM class-load for their respective targets:
+ * <p>Four transformers fire on JVM class-load for their respective targets:
  * <ul>
  *   <li>{@code PlayerTickHandlerTransformer} — patches MPS' tick handler so
  *       Flight Control no longer applies the ground-friction penalty (the
@@ -19,6 +19,9 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  *   <li>{@code PowerToolInterfaceTransformer} — bolts BC/MFR/Railcraft/UE
  *       wrench interfaces onto {@code ItemPowerTool} for the OmniWrench
  *       module.</li>
+ *   <li>{@code GuiTinkerTableTransformer} — enlarges the Tinker Table GUI
+ *       so our Tool-category modules fit without their hover tooltips
+ *       overflowing onto the icon column.</li>
  * </ul>
  *
  * <p>{@code FMLCorePluginContainsFMLMod=true} tells FML the jar also
@@ -35,7 +38,8 @@ public class MpsNaoAddonsCorePlugin implements IFMLLoadingPlugin {
         return new String[] {
             "com.nao.mpsnaoaddons.transform.PlayerTickHandlerTransformer",
             "com.nao.mpsnaoaddons.transform.EntityPlayerTransformer",
-            "com.nao.mpsnaoaddons.transform.PowerToolInterfaceTransformer"
+            "com.nao.mpsnaoaddons.transform.PowerToolInterfaceTransformer",
+            "com.nao.mpsnaoaddons.transform.GuiTinkerTableTransformer"
         };
     }
 
