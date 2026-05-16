@@ -14,6 +14,7 @@ import com.quarryplus.tile.TileWorkbench;
 
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.registry.LanguageRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
@@ -73,7 +74,30 @@ public final class QuarryPlusI {
         GameRegistry.registerTileEntity(TileWorkbench.class, "WorkbenchPlus");
         GameRegistry.registerTileEntity(TileMover.class,     "EnchantMover");
 
+        registerNames();
         registerRecipes();
+    }
+
+    /**
+     * Localization. 1.4.7 doesn't auto-load lang files from the jar — you either
+     * {@link LanguageRegistry#loadLocalization} a resource or call
+     * {@link LanguageRegistry#addStringLocalization} per key. We do both: ship a lang file
+     * under {@code mods/quarryplus/lang/} so a translator can drop in {@code fr_FR.lang}
+     * etc., AND register English fallbacks in code so the block names show up regardless
+     * of whether the lang file is reachable.
+     */
+    private static void registerNames() {
+        LanguageRegistry.instance().loadLocalization("/mods/quarryplus/lang/en_US.lang", "en_US", false);
+
+        LanguageRegistry reg = LanguageRegistry.instance();
+        reg.addStringLocalization("tile.MarkerPlus.name",    "MarkerPlus");
+        reg.addStringLocalization("tile.QuarryPlus.name",    "QuarryPlus");
+        reg.addStringLocalization("tile.FramePlus.name",     "QuarryPlus Frame");
+        reg.addStringLocalization("tile.WorkbenchPlus.name", "WorkbenchPlus");
+        reg.addStringLocalization("tile.EnchantMover.name",  "EnchantMover");
+        reg.addStringLocalization("item.statusChecker.name", "Status Checker");
+        reg.addStringLocalization("item.listEditor.name",    "List Editor");
+        reg.addStringLocalization("itemGroup.QuarryPlus",    "QuarryPlus");
     }
 
     private static void registerRecipes() {

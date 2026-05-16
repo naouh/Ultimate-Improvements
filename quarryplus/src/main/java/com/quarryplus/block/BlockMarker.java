@@ -26,7 +26,7 @@ public class BlockMarker extends BlockContainer {
         setHardness(0.0f);
         setCreativeTab(QuarryPlusI.creativeTab);
         setBlockName("MarkerPlus");
-        setTextureFile("/mods/quarryplus/textures/blocks/marker.png");
+        setTextureFile("/mods/quarryplus/textures/blocks/terrain.png");
         this.blockIndexInTexture = 0;
     }
 
@@ -37,7 +37,8 @@ public class BlockMarker extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        return 0;
+        // 2 = vanilla torch renderer. Reads block metadata (1–5) to orient itself.
+        return 2;
     }
 
     @Override
@@ -57,14 +58,15 @@ public class BlockMarker extends BlockContainer {
 
     @Override
     public void setBlockBoundsBasedOnState(IBlockAccess world, int x, int y, int z) {
-        ForgeDirection dir = ForgeDirection.getOrientation(world.getBlockMetadata(x, y, z));
-        switch (dir) {
-            case DOWN:  setBlockBounds(0.35f, 0.35f, 0.35f, 0.65f, 1.00f, 0.65f); break;
-            case UP:    setBlockBounds(0.35f, 0.00f, 0.35f, 0.65f, 0.65f, 0.65f); break;
-            case SOUTH: setBlockBounds(0.35f, 0.35f, 0.00f, 0.65f, 0.65f, 0.65f); break;
-            case NORTH: setBlockBounds(0.35f, 0.35f, 0.35f, 0.65f, 0.65f, 1.00f); break;
-            case EAST:  setBlockBounds(0.00f, 0.35f, 0.35f, 0.65f, 0.65f, 0.65f); break;
-            default:    setBlockBounds(0.35f, 0.35f, 0.35f, 1.00f, 0.65f, 0.65f);
+        // Match vanilla torch bounds, indexed by the same meta values 1–5 (1=east, 2=west,
+        // 3=south, 4=north, 5=standing). The torch renderer reads the same meta.
+        int meta = world.getBlockMetadata(x, y, z);
+        switch (meta) {
+            case 1: setBlockBounds(0.00f, 0.20f, 0.35f, 0.30f, 0.80f, 0.65f); break; // east wall
+            case 2: setBlockBounds(0.70f, 0.20f, 0.35f, 1.00f, 0.80f, 0.65f); break; // west wall
+            case 3: setBlockBounds(0.35f, 0.20f, 0.00f, 0.65f, 0.80f, 0.30f); break; // south wall
+            case 4: setBlockBounds(0.35f, 0.20f, 0.70f, 0.65f, 0.80f, 1.00f); break; // north wall
+            default: setBlockBounds(0.40f, 0.00f, 0.40f, 0.60f, 0.60f, 0.60f);       // standing
         }
     }
 
@@ -78,7 +80,15 @@ public class BlockMarker extends BlockContainer {
     @Override
     public int onBlockPlaced(World world, int x, int y, int z, int side,
                              float hitX, float hitY, float hitZ, int meta) {
-        return side;
+        // Convert clicked face to torch-style meta so render type 2 renders correctly.
+        switch (side) {
+            case 1: return 5; // top  → standing
+            case 2: return 4; // north face  → torch pointing north
+            case 3: return 3; // south face  → torch pointing south
+            case 4: return 2; // west face   → torch pointing west
+            case 5: return 1; // east face   → torch pointing east
+            default: return 5;
+        }
     }
 
     @Override

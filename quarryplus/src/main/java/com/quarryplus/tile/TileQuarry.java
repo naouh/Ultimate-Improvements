@@ -80,12 +80,20 @@ public class TileQuarry extends APowerTile implements IEnchantableTile {
 
         if (!initialized) {
             initialized = true;
-            if (yMax == Integer.MIN_VALUE) resolveWorkArea();
+            // Force a fresh work-area resolve any time the box is degenerate. The earlier
+            // Integer.MIN_VALUE sentinel doesn't survive NBT (default 0), so a freshly-built
+            // tile after a code update with no saved init flag would otherwise start mining
+            // a 0-wide box at world origin.
+            if (xMin == xMax || yMin == yMax || zMin == zMax) {
+                resolveWorkArea();
+            }
             now = MAKE_FRAME;
             PowerManager.configureF(this, efficiency, unbreaking);
             targetX = xMin; targetY = yMax; targetZ = zMin;
             digged = true; addX = true; addZ = true; changeZ = false;
             sendStateUpdate();
+            System.out.println("[QuarryPlus] init at " + xCoord + "," + yCoord + "," + zCoord
+                    + " area=(" + xMin + "," + yMin + "," + zMin + ")-(" + xMax + "," + yMax + "," + zMax + ")");
         }
 
         switch (now) {
@@ -156,6 +164,10 @@ public class TileQuarry extends APowerTile implements IEnchantableTile {
         digged = true;
         if (!PowerManager.useEnergyF(this, unbreaking)) return false;
         worldObj.setBlockAndMetadataWithNotify(targetX, targetY, targetZ, QuarryPlusI.blockFrame.blockID, 0);
+        if ((targetX + targetY + targetZ) % 17 == 0) {
+            System.out.println("[QuarryPlus] frame@" + targetX + "," + targetY + "," + targetZ
+                    + " stored=" + getStoredEnergy());
+        }
         return true;
     }
 

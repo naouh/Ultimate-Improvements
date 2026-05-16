@@ -35,8 +35,19 @@ public class BlockQuarry extends BlockContainer {
         setStepSound(soundMetalFootstep);
         setCreativeTab(QuarryPlusI.creativeTab);
         setBlockName("QuarryPlus");
-        setTextureFile("/mods/quarryplus/textures/blocks/quarry_side.png");
-        this.blockIndexInTexture = 0;
+        setTextureFile("/mods/quarryplus/textures/blocks/terrain.png");
+        this.blockIndexInTexture = 4; // default = side
+    }
+
+    /**
+     * The QuarryPlus is a 3-texture block: top, front (facing meta), other sides. Terrain.png
+     * cells: 2 = top, 3 = front, 4 = side. Bottom uses the side texture (same as 1.7.10).
+     */
+    @Override
+    public int getBlockTextureFromSideAndMetadata(int side, int meta) {
+        if (side == 1) return 2;           // top
+        if (side == meta) return 3;        // front face matches the facing direction
+        return 4;                          // bottom + other 3 sides
     }
 
     @Override

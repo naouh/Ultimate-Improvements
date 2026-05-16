@@ -24,10 +24,10 @@ public class BlockFrame extends Block {
         super(Config.blockFrameID, Material.circuits);
         setHardness(0.5f);
         setTickRandomly(true);
-        setBlockName("qpFrame");
+        setBlockName("FramePlus");
         setCreativeTab(QuarryPlusI.creativeTab);
-        setTextureFile("/mods/quarryplus/textures/blocks/frame.png");
-        this.blockIndexInTexture = 0;
+        setTextureFile("/mods/quarryplus/textures/blocks/terrain.png");
+        this.blockIndexInTexture = 1;
     }
 
     @Override

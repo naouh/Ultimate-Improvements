@@ -20,8 +20,13 @@ public class BlockMover extends BlockContainer {
         setResistance(10.0f);
         setBlockName("EnchantMover");
         setCreativeTab(QuarryPlusI.creativeTab);
-        setTextureFile("/mods/quarryplus/textures/blocks/mover_side.png");
-        this.blockIndexInTexture = 0;
+        setTextureFile("/mods/quarryplus/textures/blocks/terrain.png");
+        this.blockIndexInTexture = 8; // side
+    }
+
+    @Override
+    public int getBlockTextureFromSideAndMetadata(int side, int meta) {
+        return (side == 0 || side == 1) ? 7 : 8; // 7 = top/bottom, 8 = sides
     }
 
     @Override

@@ -8,6 +8,7 @@ import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
+import cpw.mods.fml.common.network.NetworkRegistry;
 
 /**
  * 1.4.7 backport of yogpstop's QuarryPlus 2.1.1.
@@ -26,13 +27,11 @@ import cpw.mods.fml.common.network.NetworkMod;
      useMetadata = false,
      dependencies = "after:BuildCraft|Core",
      acceptedMinecraftVersions = "[1.4.7]")
-@NetworkMod(channels = {"QuarryPlus"},
-            clientSideRequired = true, serverSideRequired = true,
-            packetHandler = PacketHandler.class)
+@NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class QuarryPlus {
 
     public static final String MODID = "QuarryPlus";
-    public static final String CHANNEL = "QuarryPlus";
+    public static final String CHANNEL = "QP";
 
     @SidedProxy(clientSide = "com.quarryplus.ProxyClient",
                 serverSide = "com.quarryplus.ProxyCommon")
@@ -50,6 +49,12 @@ public class QuarryPlus {
     @Init
     public void init(FMLInitializationEvent event) {
         QuarryPlusI.init();
+        // Register the packet channel manually rather than via @NetworkMod.channels —
+        // a player-join channel-activation crash (AIOOBE inside the Guava Multimap put
+        // backing NetworkRegistry.activeChannels) was traced to the annotation-driven
+        // path. Manual registration goes through the same registerChannel API but skips
+        // whatever timing window was being hit.
+        NetworkRegistry.instance().registerChannel(new PacketHandler(), CHANNEL);
         proxy.registerRenderers();
     }
 }

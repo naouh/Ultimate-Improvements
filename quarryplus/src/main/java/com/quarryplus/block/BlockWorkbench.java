@@ -20,8 +20,13 @@ public class BlockWorkbench extends BlockContainer {
         setResistance(10.0f);
         setBlockName("WorkbenchPlus");
         setCreativeTab(QuarryPlusI.creativeTab);
-        setTextureFile("/mods/quarryplus/textures/blocks/workbench_side.png");
-        this.blockIndexInTexture = 0;
+        setTextureFile("/mods/quarryplus/textures/blocks/terrain.png");
+        this.blockIndexInTexture = 6; // side
+    }
+
+    @Override
+    public int getBlockTextureFromSideAndMetadata(int side, int meta) {
+        return (side == 0 || side == 1) ? 5 : 6; // 5 = top/bottom, 6 = sides
     }
 
     @Override
