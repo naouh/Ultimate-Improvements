@@ -78,17 +78,21 @@ public class TileMarker extends APacketTile implements IAreaProvider {
      * every other marker the scan touches.
      */
     public void tryConnection() {
+        System.out.println("[QuarryPlus] tryConnection on marker " + xCoord + "," + yCoord + "," + zCoord);
         xMin = xMax = xCoord;
         yMin = yMax = yCoord;
         zMin = zMax = zCoord;
         scan(xCoord, yCoord, zCoord);
+        System.out.println("[QuarryPlus]   scan result: (" + xMin + "," + yMin + "," + zMin + ")-(" + xMax + "," + yMax + "," + zMax + ")");
 
         if (xMin == xMax && yMin == yMax && zMin == zMax) {
             // No partner found.
+            System.out.println("[QuarryPlus]   no partner found");
             linked = false;
             broadcastUpdate();
             return;
         }
+        System.out.println("[QuarryPlus]   linked OK, propagating");
         linked = true;
         broadcastUpdate();
         propagateBoxToOtherMarkers();
@@ -190,6 +194,11 @@ public class TileMarker extends APacketTile implements IAreaProvider {
             out.writeBoolean(poweredLaser);
             sendToAround(PacketHandler.StC_UPDATE_MARKER, bos.toByteArray());
         } catch (IOException ignored) { /* writer to byte buffer can't fail */ }
+        // Also force a vanilla block update — that re-sends getDescriptionPacket (NBT-based)
+        // so the client refreshes even if the custom-payload packet is dropped or the
+        // receiving client hasn't subscribed yet. This is what makes the box appear in
+        // real-time on right-click without needing a relog.
+        worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
 
     /** Called from {@link BlockMarker#onNeighborBlockChange}. */

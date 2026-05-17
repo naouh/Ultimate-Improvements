@@ -74,21 +74,24 @@ public final class PowerManager {
     /**
      * Attempt to spend break-block energy. SF = -1 means silk touch; otherwise it's the
      * Fortune level. Returns true if the tile had enough buffer to break the block.
+     *
+     * <p>Calls BC's PowerProvider.useEnergy directly with real=true and checks the return,
+     * matching the BC quarry's own pattern. The previous wrapper-based pre-check was
+     * returning a stale "charge" value that didn't reflect what BC's PowerProvider
+     * actually drained.
      */
     public static boolean useEnergyB(APowerTile t, float hardness, byte fortune, byte unbreaking) {
         double mult = fortune < 0 ? B_CS : Math.pow(B_CF, fortune);
-        double cost = B_BP * hardness * mult / ((double) unbreaking * B_CU + 1.0);
-        if (t.useEnergy(cost, cost, false) < cost) return false;
-        t.useEnergy(cost, cost, true);
-        return true;
+        float cost = (float) (B_BP * hardness * mult / ((double) unbreaking * B_CU + 1.0));
+        if (cost <= 0f) return true; // free break (e.g. hardness=0 paths)
+        return t.getPowerProvider().useEnergy(cost, cost, true) >= cost;
     }
 
     /** Attempt to spend frame-build energy for one frame block. */
     public static boolean useEnergyF(APowerTile t, byte unbreaking) {
-        double cost = F_BP / ((double) unbreaking * F_CU + 1.0);
-        if (t.useEnergy(cost, cost, false) < cost) return false;
-        t.useEnergy(cost, cost, true);
-        return true;
+        float cost = (float) (F_BP / ((double) unbreaking * F_CU + 1.0));
+        if (cost <= 0f) return true;
+        return t.getPowerProvider().useEnergy(cost, cost, true) >= cost;
     }
 
     /**
@@ -98,9 +101,10 @@ public final class PowerManager {
      * one.
      */
     public static double useEnergyH(APowerTile t, double dist, byte unbreaking) {
-        double budget = Math.min(2.0 + t.getStoredEnergy() / 500.0,
-                                 (dist - 0.1) * H_BP / ((double) unbreaking * H_CU + 1.0));
-        double charged = t.useEnergy(0.0, budget, true);
+        float budget = (float) Math.min(2.0 + t.getStoredEnergy() / 500.0,
+                                       (dist - 0.1) * H_BP / ((double) unbreaking * H_CU + 1.0));
+        if (budget <= 0f) return 0.1;
+        float charged = t.getPowerProvider().useEnergy(0.0f, budget, true);
         return charged * ((double) unbreaking * H_CU + 1.0) / H_BP + 0.1;
     }
 }

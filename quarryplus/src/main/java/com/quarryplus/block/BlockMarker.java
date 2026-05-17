@@ -35,6 +35,16 @@ public class BlockMarker extends BlockContainer {
         return new TileMarker();
     }
 
+    /**
+     * All markers drop as a meta-0 item regardless of which wall they were stuck to. Without
+     * this override the dropped ItemBlock carries the placement meta (1-5 for torch
+     * orientations) and vanilla treats each orientation as a separate stack.
+     */
+    @Override
+    public int damageDropped(int meta) {
+        return 0;
+    }
+
     @Override
     public int getRenderType() {
         // 2 = vanilla torch renderer. Reads block metadata (1–5) to orient itself.
@@ -72,9 +82,13 @@ public class BlockMarker extends BlockContainer {
 
     @Override
     public boolean canPlaceBlockOnSide(World world, int x, int y, int z, int side) {
+        // `side` is the face of the support block that was clicked. The support sits at
+        // (x - offset) and the relevant face of the support is the one pointing toward the
+        // torch — that's the same direction as `side` itself. (Vanilla BlockTorch does the
+        // exact same check, hard-coded per side.)
         ForgeDirection dir = ForgeDirection.getOrientation(side);
         return world.isBlockSolidOnSide(
-                x - dir.offsetX, y - dir.offsetY, z - dir.offsetZ, dir.getOpposite());
+                x - dir.offsetX, y - dir.offsetY, z - dir.offsetZ, dir);
     }
 
     @Override
@@ -107,10 +121,28 @@ public class BlockMarker extends BlockContainer {
     }
 
     private void dropIfCantStay(World world, int x, int y, int z) {
+        if (canStayHere(world, x, y, z)) return;
         int meta = world.getBlockMetadata(x, y, z);
-        if (!canPlaceBlockOnSide(world, x, y, z, meta)) {
-            dropBlockAsItem(world, x, y, z, meta, 0);
-            world.setBlockWithNotify(x, y, z, 0);
+        dropBlockAsItem(world, x, y, z, meta, 0);
+        world.setBlockWithNotify(x, y, z, 0);
+    }
+
+    /**
+     * Check whether the marker's saved metadata still has a solid support. Maps each
+     * torch-style meta (1–5) to the side-of-neighbour we need to verify, mirroring vanilla
+     * BlockTorch.canBlockStay. <b>This is NOT the same as {@link #canPlaceBlockOnSide}</b> —
+     * the latter takes the clicked-face id, whereas the meta value stored on the placed
+     * block encodes the torch lean direction (e.g. meta=5 = standing on a floor, meta=1 =
+     * leaning east against a west-side support).
+     */
+    private boolean canStayHere(World world, int x, int y, int z) {
+        switch (world.getBlockMetadata(x, y, z)) {
+            case 1: return world.isBlockSolidOnSide(x - 1, y, z, ForgeDirection.EAST);
+            case 2: return world.isBlockSolidOnSide(x + 1, y, z, ForgeDirection.WEST);
+            case 3: return world.isBlockSolidOnSide(x, y, z - 1, ForgeDirection.SOUTH);
+            case 4: return world.isBlockSolidOnSide(x, y, z + 1, ForgeDirection.NORTH);
+            case 5: return world.isBlockSolidOnSide(x, y - 1, z, ForgeDirection.UP);
+            default: return false;
         }
     }
 

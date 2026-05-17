@@ -48,13 +48,8 @@ public class RenderMarker extends TileEntitySpecialRenderer {
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glLineWidth(2.0f);
 
-        if (!tm.linked) {
-            // Unlinked — always show alignment beams. Each beam extends until it finds
-            // another marker or hits the config range.
-            GL11.glColor4f(BEAM_R, BEAM_G, BEAM_B, 1.0f);
-            drawBeams(tm, cx, cy, cz, true, true, true);
-        } else if (te.xCoord == tm.xMin && te.yCoord == tm.yMin && te.zCoord == tm.zMin) {
-            // Linked + this is the min-corner marker → draw the full wireframe box.
+        if (tm.linked && te.xCoord == tm.xMin && te.yCoord == tm.yMin && te.zCoord == tm.zMin) {
+            // Linked + this is the min-corner marker → always draw the wireframe box.
             double ox = rx - te.xCoord;
             double oy = ry - te.yCoord;
             double oz = rz - te.zCoord;
@@ -62,14 +57,23 @@ public class RenderMarker extends TileEntitySpecialRenderer {
             double x2 = ox + tm.xMax + 1.0, y2 = oy + tm.yMax + 1.0, z2 = oz + tm.zMax + 1.0;
             GL11.glColor4f(BOX_R, BOX_G, BOX_B, 1.0f);
             drawBoxEdges(x1, y1, z1, x2, y2, z2);
+        }
 
-            // If the box is degenerate on an axis (xMin==xMax etc.), draw a beam along that
-            // axis from the min corner so the player can extend the area.
+        // Alignment beams only when redstone-powered (matches the BC landmark / DartCraft
+        // original behaviour). Power state is broadcast by the server in
+        // TileMarker.broadcastUpdate / synced via NBT in onDataPacket.
+        if (tm.poweredLaser) {
             GL11.glColor4f(BEAM_R, BEAM_G, BEAM_B, 1.0f);
-            drawBeams(tm, cx, cy, cz,
-                    tm.xMin == tm.xMax,
-                    tm.yMin == tm.yMax,
-                    tm.zMin == tm.zMax);
+            // If linked, only show beams on axes that aren't fully defined yet (player wants
+            // to extend the box). If unlinked, show all three axes.
+            if (tm.linked) {
+                drawBeams(tm, cx, cy, cz,
+                        tm.xMin == tm.xMax,
+                        tm.yMin == tm.yMax,
+                        tm.zMin == tm.zMax);
+            } else {
+                drawBeams(tm, cx, cy, cz, true, true, true);
+            }
         }
 
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
