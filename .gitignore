@@ -1,7 +1,7 @@
 # Top-level: ignore everything in mods-v2/ ...
 /*
 
-# ... then re-include the repo-tracked files and the 5 mod folders.
+# ... then re-include the repo-tracked files and the mod folders.
 !/.gitignore
 !/README.md
 !/docs/
@@ -9,6 +9,7 @@
 !/mpsflightfix/
 !/mps-nao-addons/
 !/neiae/
+!/paintbrush/
 !/quarryplus/
 !/translocator/
 

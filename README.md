@@ -1,6 +1,6 @@
 # Nao's Minecraft 1.4.7 Mods
 
-Five mods targeting MC 1.4.7 / Forge `1.4.7-6.6.2.534` (FTB Ultimate / Ultimate Remastered era), built with [Voldeloom](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom).
+Seven mods targeting MC 1.4.7 / Forge `1.4.7-6.6.2.534` (FTB Ultimate / Ultimate Remastered era), built with [Voldeloom](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom).
 
 | Folder | What it does |
 |---|---|
@@ -8,6 +8,8 @@ Five mods targeting MC 1.4.7 / Forge `1.4.7-6.6.2.534` (FTB Ultimate / Ultimate 
 | [`mpsflightfix/`](mpsflightfix/) | Original standalone version of the Flight Control ground-feel fix (NilLoader nilmod). **Superseded by `mps-nao-addons` — only run one of the two.** Kept here for reference / for users who don't want the extra modules. |
 | [`mps-nao-addons/`](mps-nao-addons/) | MPS coremod that bundles the Flight Control ground fix from `mpsflightfix` and adds five modules: **Air Stride** (helmet — mine at full speed while airborne), **OmniWrench** / **EU Reader** / **TE Multimeter** (power tool tool-modes) and **ME Wireless Terminal** (power tool — channels AE's wireless terminal into MPS, with the original recipe-cost requirement). Bytecode-patches `ItemPowerTool` to implement BuildCraft `IToolWrench`, MFR `IToolHammer`, Railcraft `IToolCrowbar` and UE `IToolConfigurator` so other mods recognise the power tool as a wrench when the OmniWrench mode is active. |
 | [`neiae/`](neiae/) | Wires NEI's `?` recipe-overlay button to AE's ME Crafting Terminal. Shift-click the `?` in NEI while a crafting terminal is open to extract the recipe's ingredients from the ME network into the 3×3 matrix. |
+| [`paintbrush/`](paintbrush/) | Adds a reusable **Paint Brush** item. Right-click an IC2 glass fibre cable (or any IC2 cable) to colour it via IC2's `ic2.api.IPaintableBlock` API; sneak + right-click cycles the 16 dye colours. Crafted from a stick, a string and any dye, and re-colourable with a different dye. |
+| [`quarryplus/`](quarryplus/) | 1.4.7 backport of yogpstop's QuarryPlus 2.1.1 — enchantable mining quarry, long-range markers, NBT workbench and enchantment mover. Power: BuildCraft 3.x MJ only. |
 | [`translocator/`](translocator/) | 1.4.7 backport of ChickenBones' Translocator 1.1.0.2 — item translocator, liquid translocator and crafting grid. Uses CCC 0.8.1.6's `RayTracer`/`Vector3`/`PacketCustom` directly; Voldeloom's `modCompileOnly` remaps CCC's MC obf references at build time. |
 
 ## Building
@@ -30,6 +32,8 @@ The remapped jar lands in `<mod>/build/libs/<mod>-<version>.jar`.
 | `mpsflightfix` | `ModularPowersuits.jar` (the MPS 0.3.2-199 era jar) |
 | `mps-nao-addons` | *(empty — uses reflection for all MPS API calls)* |
 | `neiae` | `AppEng.jar`, `NEI.jar` |
+| `paintbrush` | `ic2api.jar` — just `ic2/api/IPaintableBlock.class`, extracted from `IC2.jar` (see `paintbrush/README.md`) |
+| `quarryplus` | `buildcraft-A-1.4.7-3.4.6.jar` |
 | `translocator` | `CodeChickenCore-0.8.1.6.jar` |
 
 The jars are typically extractable from any 1.4.7 modpack that includes the upstream mod (FTB Ultimate has all of them).

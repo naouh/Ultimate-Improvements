@@ -1,0 +1,11 @@
+[
+  {
+    "modid": "PaintBrush",
+    "name": "PaintBrush",
+    "description": "Adds a reusable paint brush. Craft it with a stick, a string and any dye, then right-click IndustrialCraft 2 glass fibre cables (and any other IC2 cable) to colour them. Sneak + right-click cycles through the 16 colours.",
+    "version": "0.1.3",
+    "mcversion": "1.4.7",
+    "authors": [ "Naouh" ],
+    "dependencies": [ "after:IC2" ]
+  }
+]
