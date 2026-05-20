@@ -3,6 +3,7 @@
 
 # ... then re-include the repo-tracked files and the mod folders.
 !/.gitignore
+!/LICENSE
 !/README.md
 !/docs/
 !/cagecontrol/

@@ -50,3 +50,12 @@ It's the only sane way to write fresh 1.4.7 code in 2024+; the original MCP/Ant 
 ## Documentation
 
 * [`docs/dartcraft/`](docs/dartcraft/) — player-oriented wiki for **DartCraft Beta 0.1.10** (the MC 1.4.7 release). Items, blocks, Force Engine fuels, the full Force Infusion table with material/efficiency/tier costs, and recipe lists for vanilla + Forestry/IC2/TE/Railcraft/Thaumcraft integrations. Generated from a CFR decompile of the jar.
+
+## License
+
+The original work in this repository is released under the **MIT License** — see [`LICENSE`](LICENSE). That covers the five mods I wrote from scratch (`cagecontrol`, `mpsflightfix`, `mps-nao-addons`, `neiae`, `paintbrush`) as well as the build scaffolding and porting work in the other folders.
+
+Two folders are backports of mods originally written by someone else and the upstream code remains governed by its original license:
+
+* [`quarryplus/`](quarryplus/) — backport of [yogpstop's QuarryPlus](https://github.com/yogpstop/QuarryPlus). Refer to that upstream repository for its licence.
+* [`translocator/`](translocator/) — backport of ChickenBones' Translocator 1.1.0.2 (originally distributed alongside CodeChickenCore, which is MIT).
