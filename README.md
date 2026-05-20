@@ -59,3 +59,7 @@ Two folders are backports of mods originally written by someone else and the ups
 
 * [`quarryplus/`](quarryplus/) — backport of [yogpstop's QuarryPlus](https://github.com/yogpstop/QuarryPlus). Refer to that upstream repository for its licence.
 * [`translocator/`](translocator/) — backport of ChickenBones' Translocator 1.1.0.2 (originally distributed alongside CodeChickenCore, which is MIT).
+
+## Related repositories
+
+* [`ThePixelbrain/BedcraftFixes147`](https://github.com/ThePixelbrain/BedcraftFixes147) — a nilmod collecting targeted 1.4.7 fixes for the Bedcraft / Rewind Upsilon server. Same toolchain as `mpsflightfix` / `mps-nao-addons` here (NilLoader + ASM mini-transformers). [`mpsflightfix`](mpsflightfix/) has been [PR'd upstream there](https://github.com/ThePixelbrain/BedcraftFixes147/pull/1) as a single transformer — if it gets merged, you can run that pack's jar instead of the standalone `mpsflightfix`.
