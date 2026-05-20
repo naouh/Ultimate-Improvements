@@ -17,16 +17,13 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.nao.neiae'
 archivesBaseName = 'neiae'
-version = '1.0.0'
+version = '1.2.0'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
 
 repositories {
 	mavenCentral()
-	flatDir {
-		dirs 'libs'
-	}
 }
 
 dependencies {
@@ -34,10 +31,9 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 
-	// NEI + AE jars on compile classpath. NEI's API classes use plain Java
-	// types so we can import them directly. AE classes are resolved
-	// reflectively at runtime in NeiAeMod.
-	compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+	// NEI and AE are accessed entirely via reflection (Class.forName /
+	// Method.invoke). No compile-time dependency on their jars is needed
+	// — the build is self-contained.
 }
 
 volde {

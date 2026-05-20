@@ -32,7 +32,7 @@ import cpw.mods.fml.common.network.NetworkMod;
  */
 @Mod(modid = "NeiAe",
      name = "NEI -> AE Recipe Bridge",
-     version = "1.1.0",
+     version = "1.2.0",
      dependencies = "required-after:NotEnoughItems;required-after:AppliedEnergistics")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false,
             channels = { NeiAeMod.CHANNEL }, packetHandler = ServerHandler.class)
@@ -77,9 +77,11 @@ public class NeiAeMod {
                 new InvocationHandler() {
                     @Override
                     public Object invoke(Object proxy, Method method, Object[] args) {
-                        System.out.println("[NeiAe] proxy invoke: " + method.getName()
-                                + " (" + (args == null ? 0 : args.length) + " args)");
-                        if ("overlayRecipe".equals(method.getName())
+                        // No per-call logging here — NEI can hit equals/hashCode on
+                        // every overlay-handler lookup, so anything printed would
+                        // spam the log and burn CPU on the render path.
+                        String name = method.getName();
+                        if ("overlayRecipe".equals(name)
                                 && args != null && args.length == 3) {
                             try {
                                 ClientOverlay.handleClick(args[0], args[1], (Boolean) args[2]);
@@ -87,11 +89,15 @@ public class NeiAeMod {
                                 System.err.println("[NeiAe] handleClick threw:");
                                 t.printStackTrace();
                             }
-                        } else if ("equals".equals(method.getName())) {
+                            return null;
+                        }
+                        if ("equals".equals(name)) {
                             return Boolean.valueOf(proxy == args[0]);
-                        } else if ("hashCode".equals(method.getName())) {
+                        }
+                        if ("hashCode".equals(name)) {
                             return Integer.valueOf(System.identityHashCode(proxy));
-                        } else if ("toString".equals(method.getName())) {
+                        }
+                        if ("toString".equals(name)) {
                             return "NeiAe$DynamicOverlayHandler";
                         }
                         return null;

@@ -25,23 +25,20 @@ import net.minecraft.network.packet.Packet250CustomPayload;
  */
 final class ClientOverlay {
 
+    /** Cached PositionedStack reflection, resolved lazily on first click. */
+    private static volatile boolean ready = false;
+    private static Field fRelX;
+    private static Field fRelY;
+    private static Field fItems;
+
     private ClientOverlay() {}
 
     static void handleClick(Object gui, Object ingredientsObj, boolean shift) {
-        System.out.println("[NeiAe] handleClick called, shift=" + shift
-                + ", ingredients=" + (ingredientsObj == null ? "null" :
-                    (ingredientsObj instanceof List ? ((List<?>) ingredientsObj).size() + " items" :
-                        ingredientsObj.getClass().getName())));
+        if (!(ingredientsObj instanceof List)) return;
+        if (!ensureReady()) return;
+
         try {
-            if (!(ingredientsObj instanceof List)) return;
             List<?> ingredients = (List<?>) ingredientsObj;
-
-            // PositionedStack reflection — fields are stable in NEI 1.4.x.
-            Class<?> psCls = Class.forName("codechicken.nei.PositionedStack");
-            Field fRelX  = psCls.getField("relx");
-            Field fRelY  = psCls.getField("rely");
-            Field fItems = psCls.getField("items");
-
             NBTTagCompound payload = new NBTTagCompound();
             NBTTagList ingrList = new NBTTagList();
 
@@ -57,8 +54,8 @@ final class ClientOverlay {
                 int slotIdx = ((rely - 6) / 18) * 3 + ((relx - 25) / 18);
                 if (slotIdx < 0 || slotIdx > 8) continue;
 
-                // arr[0] is an ItemStack (obfuscated 'ur' at runtime, which is
-                // also what 'ItemStack' compiles to after Voldeloom remap).
+                // arr[0] is an ItemStack — Voldeloom remaps `ItemStack` and the
+                // runtime `ur` to each other, so the cast resolves at build time.
                 ItemStack stack = (ItemStack) arr[0];
                 if (stack == null) continue;
 
@@ -80,11 +77,25 @@ final class ClientOverlay {
             pkt.data    = data;
             pkt.length  = data.length;
             PacketDispatcher.sendPacketToServer(pkt);
-
-            System.out.println("[NeiAe] Sent recipe packet, " + ingrList.tagCount() + " ingredients");
         } catch (Throwable t) {
             System.err.println("[NeiAe] handleClick failed:");
             t.printStackTrace();
+        }
+    }
+
+    private static synchronized boolean ensureReady() {
+        if (ready) return true;
+        try {
+            Class<?> psCls = Class.forName("codechicken.nei.PositionedStack");
+            fRelX  = psCls.getField("relx");
+            fRelY  = psCls.getField("rely");
+            fItems = psCls.getField("items");
+            ready = true;
+            return true;
+        } catch (Throwable t) {
+            System.err.println("[NeiAe] PositionedStack reflection setup failed:");
+            t.printStackTrace();
+            return false;
         }
     }
 }

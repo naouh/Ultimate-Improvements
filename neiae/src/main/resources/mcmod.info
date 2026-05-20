@@ -2,8 +2,8 @@
   {
     "modid": "NeiAe",
     "name": "NEI -> AE Recipe Bridge",
-    "description": "Adds NEI's '+' overlay button to AE Crafting Terminal and Pattern Encoder. One click transfers an NEI recipe into the open AE GUI.",
-    "version": "1.0.0",
+    "description": "Adds NEI's '?' recipe-overlay shortcut to AE's ME Crafting Terminal. Shift-click the '?' on an NEI recipe while the terminal is open and the ingredients are pulled from the ME network into the 3x3 crafting matrix.",
+    "version": "1.2.0",
     "mcversion": "1.4.7",
     "url": "",
     "updateUrl": "",

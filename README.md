@@ -31,7 +31,7 @@ The remapped jar lands in `<mod>/build/libs/<mod>-<version>.jar`.
 | `cagecontrol` | `SoulShards.jar` |
 | `mpsflightfix` | `ModularPowersuits.jar` (the MPS 0.3.2-199 era jar) |
 | `mps-nao-addons` | *(empty — uses reflection for all MPS API calls)* |
-| `neiae` | `AppEng.jar`, `NEI.jar` |
+| `neiae` | *(empty — NEI and AE are accessed via reflection at runtime, nothing needed at compile time)* |
 | `paintbrush` | `ic2api.jar` — just `ic2/api/IPaintableBlock.class`, extracted from `IC2.jar` (see `paintbrush/README.md`) |
 | `quarryplus` | `buildcraft-A-1.4.7-3.4.6.jar` |
 | `translocator` | `CodeChickenCore-0.8.1.6.jar` |

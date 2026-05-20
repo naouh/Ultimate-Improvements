@@ -37,9 +37,9 @@ public class ServerHandler implements IPacketHandler {
     private static volatile boolean ready = false;
     private static Class<?>  cCraftingTerminalCls;
     private static Class<?>  cSlotMatrixCls;
-    private static Class<?>  cMEInventoryCls;
     private static Field     fImeiinv;
     private static Method    mExtractItems;
+    private static Method    mAddItems;
     private static Method    mDetectChanges;
 
     @Override
@@ -52,7 +52,6 @@ public class ServerHandler implements IPacketHandler {
         try {
             if (!ensureReady()) return;
 
-            // Client writes with writeCompressed (gzip), so we decompress.
             NBTTagCompound payload = CompressedStreamTools.decompress(packet.data);
             NBTTagList ingredients = payload.getTagList("ingredients");
             if (ingredients == null || ingredients.tagCount() == 0) return;
@@ -86,7 +85,6 @@ public class ServerHandler implements IPacketHandler {
                 if (requested == null) continue;
                 requested.stackSize = 1;
 
-                // Extract 1 of the requested item from the ME network.
                 ItemStack extracted = (ItemStack) mExtractItems.invoke(imei, requested);
                 if (extracted == null || extracted.stackSize <= 0) {
                     missing++;
@@ -94,16 +92,18 @@ public class ServerHandler implements IPacketHandler {
                 }
 
                 Slot dst = matrixSlots.get(slotIdx);
-
-                // If the matrix slot already holds something, return it to
-                // the network before overwriting. (extractItems' sibling
-                // is addItems on the same IMEInventory.)
                 ItemStack existing = dst.getStack();
+
+                // If the slot already holds something, try to push it back into
+                // the ME network first. If that fails (or the network can't
+                // absorb it all), return what we just extracted and skip — better
+                // to leave both items intact than silently destroy the original.
                 if (existing != null && existing.stackSize > 0) {
-                    try {
-                        Method addItems = cMEInventoryCls.getMethod("addItems", ItemStack.class);
-                        addItems.invoke(imei, existing);
-                    } catch (Throwable ignore) {}
+                    if (!returnToNetwork(imei, existing)) {
+                        returnToNetwork(imei, extracted);
+                        missing++;
+                        continue;
+                    }
                 }
 
                 dst.putStack(extracted);
@@ -123,16 +123,42 @@ public class ServerHandler implements IPacketHandler {
         }
     }
 
+    /**
+     * Returns true if the stack was fully accepted by the ME network. If
+     * {@code addItems} isn't available (older AE), throws, or returns a
+     * non-empty leftover, the caller should treat the slot as unsafe to
+     * overwrite — the matrix is left untouched.
+     */
+    private static boolean returnToNetwork(Object imei, ItemStack stack) {
+        if (mAddItems == null) return false;
+        try {
+            Object leftover = mAddItems.invoke(imei, stack);
+            if (leftover instanceof ItemStack && ((ItemStack) leftover).stackSize > 0) {
+                return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            System.err.println("[NeiAe] addItems failed:");
+            t.printStackTrace();
+            return false;
+        }
+    }
+
     private static synchronized boolean ensureReady() {
         if (ready) return true;
         try {
-            cCraftingTerminalCls = Class.forName("appeng.me.container.ContainerCraftingTerminal");
-            cSlotMatrixCls       = Class.forName("appeng.slot.SlotCraftingMatrix");
-            cMEInventoryCls      = Class.forName("appeng.api.me.util.IMEInventory");
-            // ContainerTerminal (parent) has `public NetworkedIMEI imeiinv;`
-            fImeiinv             = Class.forName("appeng.me.container.ContainerTerminal").getField("imeiinv");
-            mExtractItems        = cMEInventoryCls.getMethod("extractItems", ItemStack.class);
-            // MC Container.detectAndSendChanges() — name may stay clean after Voldeloom remap.
+            cCraftingTerminalCls  = Class.forName("appeng.me.container.ContainerCraftingTerminal");
+            cSlotMatrixCls        = Class.forName("appeng.slot.SlotCraftingMatrix");
+            Class<?> cMEInventory = Class.forName("appeng.api.me.util.IMEInventory");
+            fImeiinv              = Class.forName("appeng.me.container.ContainerTerminal").getField("imeiinv");
+            mExtractItems         = cMEInventory.getMethod("extractItems", ItemStack.class);
+            // addItems is optional — if AE drops it, the slot-freeing path
+            // refuses to overwrite occupied slots, which is the safe default.
+            try {
+                mAddItems = cMEInventory.getMethod("addItems", ItemStack.class);
+            } catch (NoSuchMethodException ignore) {
+                mAddItems = null;
+            }
             try {
                 mDetectChanges = Container.class.getMethod("detectAndSendChanges");
             } catch (NoSuchMethodException ignore) {
