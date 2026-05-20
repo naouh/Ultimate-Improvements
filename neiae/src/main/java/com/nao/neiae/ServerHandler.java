@@ -74,6 +74,19 @@ public class ServerHandler implements IPacketHandler {
                 return;
             }
 
+            // Empty the whole matrix back into the ME first — slots the new recipe doesn't
+            // fill would otherwise keep whatever was in them from a previous recipe. Slots
+            // the network can't absorb (full, missing addItems) are left alone; the recipe
+            // loop will try again on a per-slot basis below.
+            for (int i = 0; i < matrixSlots.size(); i++) {
+                Slot s = matrixSlots.get(i);
+                ItemStack existing = s.getStack();
+                if (existing == null || existing.stackSize <= 0) continue;
+                if (returnToNetwork(imei, existing)) {
+                    s.putStack(null);
+                }
+            }
+
             int filled = 0;
             int missing = 0;
             for (int i = 0; i < ingredients.tagCount(); i++) {
