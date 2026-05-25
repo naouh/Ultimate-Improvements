@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "windowitemsfix",
+    "name": "WindowItemsFix",
+    "description": "Bails out of Container.putStacksInSlots when inventorySlots is empty. Fixes the client crash (IndexOutOfBoundsException in NetClientHandler.handleWindowItems) caused by GregTech/other mods exposing a placeholder block during the post-teleport/login TileEntity sync window.",
+    "version": "1.0.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "authorList": ["Nao"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
