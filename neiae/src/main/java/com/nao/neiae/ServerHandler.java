@@ -1,6 +1,5 @@
 package com.nao.neiae;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +36,7 @@ public class ServerHandler implements IPacketHandler {
     private static volatile boolean ready = false;
     private static Class<?>  cCraftingTerminalCls;
     private static Class<?>  cSlotMatrixCls;
-    private static Field     fImeiinv;
+    private static Method    mGetNetworkIME;
     private static Method    mExtractItems;
     private static Method    mAddItems;
     private static Method    mDetectChanges;
@@ -62,7 +61,7 @@ public class ServerHandler implements IPacketHandler {
                 return;
             }
 
-            Object imei = fImeiinv.get(container);
+            Object imei = mGetNetworkIME.invoke(container);
             if (imei == null) {
                 epm.sendChatToPlayer("[NeiAe] ME network not available.");
                 return;
@@ -163,7 +162,13 @@ public class ServerHandler implements IPacketHandler {
             cCraftingTerminalCls  = Class.forName("appeng.me.container.ContainerCraftingTerminal");
             cSlotMatrixCls        = Class.forName("appeng.slot.SlotCraftingMatrix");
             Class<?> cMEInventory = Class.forName("appeng.api.me.util.IMEInventory");
-            fImeiinv              = Class.forName("appeng.me.container.ContainerTerminal").getField("imeiinv");
+            // Use the GetNetworkIME() getter rather than the public imeiinv field:
+            // ContainerTerminal also declares `public GuiTerminal myGui`, and any
+            // call to getField/getDeclaredField forces the JVM to resolve every
+            // declared field's type — GuiTerminal is client-only, so on a
+            // dedicated server that throws NoClassDefFoundError. getMethod only
+            // resolves method signatures, and none of the methods reference it.
+            mGetNetworkIME        = Class.forName("appeng.me.container.ContainerTerminal").getMethod("GetNetworkIME");
             mExtractItems         = cMEInventory.getMethod("extractItems", ItemStack.class);
             // addItems is optional — if AE drops it, the slot-freeing path
             // refuses to overwrite occupied slots, which is the safe default.

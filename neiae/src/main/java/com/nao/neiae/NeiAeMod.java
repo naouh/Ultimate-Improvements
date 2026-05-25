@@ -32,7 +32,7 @@ import cpw.mods.fml.common.network.NetworkMod;
  */
 @Mod(modid = "NeiAe",
      name = "NEI -> AE Recipe Bridge",
-     version = "1.2.1",
+     version = "1.2.2",
      dependencies = "required-after:NotEnoughItems;required-after:AppliedEnergistics")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false,
             channels = { NeiAeMod.CHANNEL }, packetHandler = ServerHandler.class)
