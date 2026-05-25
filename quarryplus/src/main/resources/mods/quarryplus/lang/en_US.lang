@@ -1,8 +1,0 @@
-tile.MarkerPlus.name=MarkerPlus
-tile.QuarryPlus.name=QuarryPlus
-tile.FramePlus.name=QuarryPlus Frame
-tile.WorkbenchPlus.name=WorkbenchPlus
-tile.EnchantMover.name=EnchantMover
-item.statusChecker.name=Status Checker
-item.listEditor.name=List Editor
-itemGroup.QuarryPlus=QuarryPlus
