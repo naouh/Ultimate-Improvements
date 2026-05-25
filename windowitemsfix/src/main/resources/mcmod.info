@@ -2,7 +2,7 @@
   {
     "modid": "windowitemsfix",
     "name": "WindowItemsFix",
-    "description": "Bails out of Container.putStacksInSlots when inventorySlots is empty. Fixes the client crash (IndexOutOfBoundsException in NetClientHandler.handleWindowItems) caused by GregTech/other mods exposing a placeholder block during the post-teleport/login TileEntity sync window.",
+    "description": "Fixes the post-teleport/post-login race where right-clicking a TileEntity-backed block (e.g. GregTech machines) before its TE has synced causes a client crash or scrambled inventory. Swallows the click client-side until the TE is ready.",
     "version": "1.0.0",
     "mcversion": "1.4.7",
     "url": "",
