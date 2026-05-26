@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "ClaimTeam",
+    "name": "ClaimTeam",
+    "description": "Chunk claims + teams + chunkloading for Minecraft 1.4.7 / FTB Ultimate. GUI grid map, fixed roles (owner/member/ally), per-group limits via config (with optional Essentials GroupManager hook), and ASM-level protection against TNT/creeper/piston/fluid/PVP griefing.",
+    "version": "0.1.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "authorList": ["Nao"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
