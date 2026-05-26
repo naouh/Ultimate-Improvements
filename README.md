@@ -1,10 +1,11 @@
 # Nao's Minecraft 1.4.7 Mods
 
-Seven mods targeting MC 1.4.7 / Forge `1.4.7-6.6.2.534` (FTB Ultimate / Ultimate Remastered era), built with [Voldeloom](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom).
+Eight mods targeting MC 1.4.7 / Forge `1.4.7-6.6.2.534` (FTB Ultimate / Ultimate Remastered era), built with [Voldeloom](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom).
 
 | Folder | What it does |
 |---|---|
 | [`cagecontrol/`](cagecontrol/) | Disables SoulShards 1.26 cage auto-activation. Right-click a placed cage with its shard to register an owner, then `/shard <name> start \| stop` to control activation. Co-owners via `/shard <name> owner add/remove/list`. |
+| [`claimteam/`](claimteam/) | **(alpha)** Chunk claims, teams (owner/member/ally) and `ForgeChunkManager`-backed chunk-loading via in-game grid map (`C` key) and `/claim` `/team` commands. Per-group limits via config or Essentials GroupManager bridge. ASM transformers patch `Explosion` / `BlockPistonBase` / `BlockFlowing` / `EntityPlayer` for grief protection across claim boundaries (TNT, pistons, fluid flow, PVP). |
 | [`mpsflightfix/`](mpsflightfix/) | Original standalone version of the Flight Control ground-feel fix (NilLoader nilmod). **Superseded by `mps-nao-addons` — only run one of the two.** Kept here for reference / for users who don't want the extra modules. |
 | [`mps-nao-addons/`](mps-nao-addons/) | MPS coremod that bundles the Flight Control ground fix from `mpsflightfix` and adds five modules: **Air Stride** (helmet — mine at full speed while airborne), **OmniWrench** / **EU Reader** / **TE Multimeter** (power tool tool-modes) and **ME Wireless Terminal** (power tool — channels AE's wireless terminal into MPS, with the original recipe-cost requirement). Bytecode-patches `ItemPowerTool` to implement BuildCraft `IToolWrench`, MFR `IToolHammer`, Railcraft `IToolCrowbar` and UE `IToolConfigurator` so other mods recognise the power tool as a wrench when the OmniWrench mode is active. |
 | [`neiae/`](neiae/) | Wires NEI's `?` recipe-overlay button to AE's ME Crafting Terminal. Shift-click the `?` in NEI while a crafting terminal is open to extract the recipe's ingredients from the ME network into the 3×3 matrix. |
@@ -29,6 +30,7 @@ The remapped jar lands in `<mod>/build/libs/<mod>-<version>.jar`.
 | Mod | `libs/` needs |
 |---|---|
 | `cagecontrol` | `SoulShards.jar` |
+| `claimteam` | *(empty — only MC + Forge needed; Essentials GroupManager is hooked reflectively at runtime)* |
 | `mpsflightfix` | `ModularPowersuits.jar` (the MPS 0.3.2-199 era jar) |
 | `mps-nao-addons` | *(empty — uses reflection for all MPS API calls)* |
 | `neiae` | *(empty — NEI and AE are accessed via reflection at runtime, nothing needed at compile time)* |
@@ -53,7 +55,7 @@ It's the only sane way to write fresh 1.4.7 code in 2024+; the original MCP/Ant 
 
 ## License
 
-The original work in this repository is released under the **MIT License** — see [`LICENSE`](LICENSE). That covers the six mods I wrote from scratch (`cagecontrol`, `mpsflightfix`, `mps-nao-addons`, `neiae`, `paintbrush`, `windowitemsfix`) as well as the build scaffolding and porting work in the `translocator/` folder.
+The original work in this repository is released under the **MIT License** — see [`LICENSE`](LICENSE). That covers the seven mods I wrote from scratch (`cagecontrol`, `claimteam`, `mpsflightfix`, `mps-nao-addons`, `neiae`, `paintbrush`, `windowitemsfix`) as well as the build scaffolding and porting work in the `translocator/` folder.
 
 [`translocator/`](translocator/) is a backport of ChickenBones' Translocator 1.1.0.2 (originally distributed alongside CodeChickenCore, which is MIT) and the upstream code remains governed by that licence.
 
