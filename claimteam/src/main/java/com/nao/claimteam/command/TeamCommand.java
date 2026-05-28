@@ -3,11 +3,14 @@ package com.nao.claimteam.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.nao.claimteam.Config;
 import com.nao.claimteam.chunkload.ChunkLoadManager;
 import com.nao.claimteam.data.Claim;
 import com.nao.claimteam.data.ClaimRegistry;
 import com.nao.claimteam.data.ClaimTeam;
 import com.nao.claimteam.data.TeamRegistry;
+import com.nao.claimteam.network.PacketHandler;
+import net.minecraft.server.MinecraftServer;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
@@ -40,7 +43,7 @@ public class TeamCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/team <create|invite|kick|ally|unally|leave|disband|info|list> [...]";
+        return "/team <create|invite|kick|promote|ally|unally|leave|disband|info|list> [...]";
     }
 
     @Override
@@ -55,6 +58,35 @@ public class TeamCommand extends CommandBase {
 
     private static void reply(ICommandSender s, String msg) {
         s.sendChatToPlayer("§e[ClaimTeam]§r " + msg);
+    }
+
+    /** Re-push the grid + team info to one player (used after we mutate their team). */
+    private static void pushUpdate(EntityPlayerMP epm) {
+        if (epm == null || epm.worldObj == null) return;
+        int cx = ((int) Math.floor(epm.posX)) >> 4;
+        int cz = ((int) Math.floor(epm.posZ)) >> 4;
+        PacketHandler.sendGrid(epm, cx, cz, Config.gridRadius);
+        PacketHandler.sendTeamInfo(epm);
+    }
+
+    /** Re-push to every player currently in {@code team} (and the just-removed member when needed). */
+    private static void pushUpdateTeam(World w, ClaimTeam team, String extraUser) {
+        if (team == null) return;
+        MinecraftServer srv = MinecraftServer.getServer();
+        if (srv == null) return;
+        // Owner
+        EntityPlayerMP p = srv.getConfigurationManager().getPlayerForUsername(team.owner);
+        if (p != null) pushUpdate(p);
+        // Members
+        for (String m : team.members) {
+            p = srv.getConfigurationManager().getPlayerForUsername(m);
+            if (p != null) pushUpdate(p);
+        }
+        // Extra (e.g. just-kicked player, no longer in members)
+        if (extraUser != null) {
+            p = srv.getConfigurationManager().getPlayerForUsername(extraUser);
+            if (p != null) pushUpdate(p);
+        }
     }
 
     @Override
@@ -79,6 +111,7 @@ public class TeamCommand extends CommandBase {
             ClaimTeam t = tr.create(name, epm.username);
             if (t == null) { reply(epm, "Could not create team."); return; }
             reply(epm, GREEN + "Team '" + name + "' created. You are the owner." + R);
+            pushUpdate(epm);
             return;
         }
 
@@ -112,18 +145,38 @@ public class TeamCommand extends CommandBase {
             if (t.isOwner(epm.username)) {
                 reply(epm, "Owners can't leave. Use /team disband to remove the team."); return;
             }
-            if (tr.removeMember(t, epm.username)) reply(epm, "You left " + AQUA + t.name + R + ".");
-            else reply(epm, "You are not a member.");
+            if (tr.removeMember(t, epm.username)) {
+                reply(epm, "You left " + AQUA + t.name + R + ".");
+                pushUpdate(epm);
+                pushUpdateTeam(w, t, null);
+            } else {
+                reply(epm, "You are not a member.");
+            }
             return;
         }
 
         if ("disband".equals(sub)) {
             if (!t.isOwner(epm.username)) { reply(epm, "Only the owner can disband."); return; }
             ClaimRegistry cr = ClaimRegistry.get(w);
+            // Snapshot members BEFORE disband (which clears the team).
+            List<String> formerMembers = new ArrayList<String>(t.members);
+            String formerOwner = t.owner;
             List<Claim> claims = cr.dropTeam(t.name);
             for (Claim c : claims) if (c.chunkload) ChunkLoadManager.release(c.dim, c.chunkX, c.chunkZ);
             tr.disband(t.name);
             reply(epm, RED + "Team " + t.name + " disbanded. " + claims.size() + " claims released." + R);
+            // Refresh all affected players.
+            MinecraftServer srv = MinecraftServer.getServer();
+            if (srv != null) {
+                if (formerOwner != null) {
+                    EntityPlayerMP p = srv.getConfigurationManager().getPlayerForUsername(formerOwner);
+                    if (p != null) pushUpdate(p);
+                }
+                for (String m : formerMembers) {
+                    EntityPlayerMP p = srv.getConfigurationManager().getPlayerForUsername(m);
+                    if (p != null) pushUpdate(p);
+                }
+            }
             return;
         }
 
@@ -132,8 +185,28 @@ public class TeamCommand extends CommandBase {
             if (args.length < 2) { reply(epm, "Usage: /team invite <player>"); return; }
             String target = args[1];
             if (tr.getByPlayer(target) != null) { reply(epm, target + " is already in a team."); return; }
-            if (tr.addMember(t, target)) reply(epm, GREEN + "Added " + target + " to " + t.name + "." + R);
-            else reply(epm, "Could not add " + target + ".");
+            if (tr.addMember(t, target)) {
+                reply(epm, GREEN + "Added " + target + " to " + t.name + "." + R);
+                pushUpdateTeam(w, t, null);
+            } else {
+                reply(epm, "Could not add " + target + ".");
+            }
+            return;
+        }
+
+        if ("promote".equals(sub)) {
+            if (!t.isOwner(epm.username)) { reply(epm, "Only the owner can promote."); return; }
+            if (args.length < 2) { reply(epm, "Usage: /team promote <member>"); return; }
+            String target = args[1];
+            if (!t.members.contains(target.toLowerCase())) {
+                reply(epm, target + " is not a member of your team."); return;
+            }
+            if (tr.transferOwnership(t, target)) {
+                reply(epm, YEL + "Ownership of " + t.name + " transferred to " + target + ". You are now a regular member." + R);
+                pushUpdateTeam(w, t, null);
+            } else {
+                reply(epm, "Could not promote " + target + ".");
+            }
             return;
         }
 
@@ -141,8 +214,12 @@ public class TeamCommand extends CommandBase {
             if (!t.isOwner(epm.username)) { reply(epm, "Only the owner can kick."); return; }
             if (args.length < 2) { reply(epm, "Usage: /team kick <player>"); return; }
             String target = args[1];
-            if (tr.removeMember(t, target)) reply(epm, RED + "Removed " + target + "." + R);
-            else reply(epm, target + " is not a member.");
+            if (tr.removeMember(t, target)) {
+                reply(epm, RED + "Removed " + target + "." + R);
+                pushUpdateTeam(w, t, target);
+            } else {
+                reply(epm, target + " is not a member.");
+            }
             return;
         }
 
@@ -183,7 +260,7 @@ public class TeamCommand extends CommandBase {
     public List addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
             List<String> r = new ArrayList<String>();
-            for (String s : new String[] { "create", "invite", "kick", "ally", "unally",
+            for (String s : new String[] { "create", "invite", "kick", "promote", "ally", "unally",
                                             "leave", "disband", "info", "list" }) {
                 if (s.startsWith(args[0].toLowerCase())) r.add(s);
             }

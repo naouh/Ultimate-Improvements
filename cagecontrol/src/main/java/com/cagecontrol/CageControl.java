@@ -48,5 +48,6 @@ public class CageControl {
     @ServerStarting
     public void onServerStarting(FMLServerStartingEvent e) {
         e.registerServerCommand(new CommandShard());
+        e.registerServerCommand(new CommandCageControl());
     }
 }

@@ -1,5 +1,8 @@
 package com.nao.claimteam.client;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.lwjgl.input.Keyboard;
 
 import com.nao.claimteam.ClaimTeamMod;
@@ -12,6 +15,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.world.World;
 
@@ -44,6 +48,32 @@ public class ClaimMapGui extends GuiScreen {
     private int sampleCx = Integer.MIN_VALUE;
     private int sampleCz = Integer.MIN_VALUE;
 
+    // ---- Team management panel (right side) ----
+
+    private static final byte MODE_NONE             = 0;
+    private static final byte MODE_INPUT_CREATE     = 1;
+    private static final byte MODE_INPUT_INVITE     = 2;
+    private static final byte MODE_PICK_KICK        = 3;
+    private static final byte MODE_PICK_PROMOTE     = 4;
+    private static final byte MODE_CONFIRM_DISBAND  = 5;
+    private static final byte MODE_CONFIRM_LEAVE    = 6;
+
+    private byte teamMode = MODE_NONE;
+    private GuiTextField teamInput;
+    private String teamInputError;
+    /** Buttons currently rendered for the team panel; rebuilt every frame so we can do context-aware buttons. */
+    private final List<TeamBtn> teamBtns = new ArrayList<TeamBtn>();
+    /** Confirm/Cancel buttons rendered while a modal is open. */
+    private final List<TeamBtn> modalBtns = new ArrayList<TeamBtn>();
+
+    private static final class TeamBtn {
+        int x, y, w, h;
+        String label;
+        int color;
+        byte action;
+        String arg; // optional payload (e.g. member username to kick)
+    }
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
@@ -53,6 +83,136 @@ public class ClaimMapGui extends GuiScreen {
         recomputeLayout();
         sampleTerrain();
         sendGridRequest();
+    }
+
+    /** Build the right-side button list based on the current team state. */
+    private void rebuildTeamButtons() {
+        teamBtns.clear();
+        int panelX = originX + gridPx + 14;
+        int y = originY;
+        int btnW = 120;
+        int btnH = 18;
+        int gap = 4;
+
+        String team = ClientPacketHandler.myTeam;
+        boolean inTeam = team != null && team.length() > 0;
+        boolean isOwner = inTeam && ClientPacketHandler.myTeamOwner != null
+                && ClientPacketHandler.myTeamOwner.equalsIgnoreCase(Minecraft.getMinecraft().thePlayer.username);
+
+        if (!inTeam) {
+            addBtn(panelX, y, btnW, btnH, "Create team", 0xFF2E8B57, MODE_INPUT_CREATE, null); y += btnH + gap;
+        } else if (isOwner) {
+            addBtn(panelX, y, btnW, btnH, "Invite player", 0xFF2E8B57, MODE_INPUT_INVITE, null);    y += btnH + gap;
+            addBtn(panelX, y, btnW, btnH, "Kick member",   0xFFAA5555, MODE_PICK_KICK,    null);    y += btnH + gap;
+            addBtn(panelX, y, btnW, btnH, "Promote member",0xFFAA8833, MODE_PICK_PROMOTE, null);    y += btnH + gap;
+            addBtn(panelX, y, btnW, btnH, "Disband team",  0xFFB22222, MODE_CONFIRM_DISBAND, null); y += btnH + gap;
+        } else {
+            addBtn(panelX, y, btnW, btnH, "Leave team",    0xFFAA5555, MODE_CONFIRM_LEAVE, null);   y += btnH + gap;
+        }
+    }
+
+    private void addBtn(int x, int y, int w, int h, String label, int color, byte action, String arg) {
+        TeamBtn b = new TeamBtn();
+        b.x = x; b.y = y; b.w = w; b.h = h;
+        b.label = label; b.color = color; b.action = action; b.arg = arg;
+        teamBtns.add(b);
+    }
+
+    /** Open the modal matching {@code action}. Caller is responsible for closing any prior modal. */
+    private void openModal(byte action, String arg) {
+        teamMode = action;
+        teamInputError = null;
+        if (action == MODE_INPUT_CREATE || action == MODE_INPUT_INVITE
+                || action == MODE_PICK_KICK || action == MODE_PICK_PROMOTE) {
+            // Position the text field where drawModal will draw the panel so they line up.
+            int pw = 260;
+            int px = (width - pw) / 2;
+            int py = modalPanelY(action);
+            int inputW = pw - 24;
+            int inputX = px + (pw - inputW) / 2;
+            int inputY = py + 30;
+            teamInput = new GuiTextField(fontRenderer, inputX, inputY, inputW, 18);
+            teamInput.setMaxStringLength(16);
+            teamInput.setFocused(true);
+            if (arg != null) teamInput.setText(arg);
+        } else {
+            teamInput = null;
+        }
+    }
+
+    /** Panel height for the given modal mode. */
+    private int modalPanelHeight(byte mode) {
+        if (mode == MODE_PICK_KICK || mode == MODE_PICK_PROMOTE) return 170;
+        if (mode == MODE_INPUT_CREATE || mode == MODE_INPUT_INVITE) return 110;
+        return 90; // confirm dialogs
+    }
+
+    private int modalPanelY(byte mode) {
+        int ph = modalPanelHeight(mode);
+        return (height - ph) / 2;
+    }
+
+    private void closeModal() {
+        teamMode = MODE_NONE;
+        teamInput = null;
+        teamInputError = null;
+    }
+
+    /**
+     * Send a chat command to the server. The server already handles /team logic
+     * and pushes a fresh grid/team_info packet back to us via TeamCommand's
+     * sendUpdate hook, so we don't need to re-request anything from here.
+     */
+    private void runTeamCommand(String cmd) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc != null && mc.thePlayer != null) {
+            mc.thePlayer.sendChatMessage(cmd);
+        }
+    }
+
+    private void confirmModal() {
+        switch (teamMode) {
+            case MODE_INPUT_CREATE: {
+                String name = teamInput == null ? "" : teamInput.getText().trim();
+                if (!name.matches("[A-Za-z0-9_\\-]{3,16}")) { teamInputError = "Name: 3-16 chars A-Z 0-9 _ -"; return; }
+                runTeamCommand("/team create " + name);
+                closeModal();
+                return;
+            }
+            case MODE_INPUT_INVITE: {
+                String n = teamInput == null ? "" : teamInput.getText().trim();
+                if (n.length() < 2) { teamInputError = "Enter a player name."; return; }
+                runTeamCommand("/team invite " + n);
+                closeModal();
+                return;
+            }
+            case MODE_PICK_KICK: {
+                String n = teamInput == null ? "" : teamInput.getText().trim();
+                if (n.length() < 2) { teamInputError = "Pick or type a member name."; return; }
+                runTeamCommand("/team kick " + n);
+                closeModal();
+                return;
+            }
+            case MODE_PICK_PROMOTE: {
+                String n = teamInput == null ? "" : teamInput.getText().trim();
+                if (n.length() < 2) { teamInputError = "Pick or type a member name."; return; }
+                runTeamCommand("/team promote " + n);
+                closeModal();
+                return;
+            }
+            case MODE_CONFIRM_DISBAND:
+                runTeamCommand("/team disband");
+                closeModal();
+                // No team anymore -> close the map; user can re-open later.
+                mc.displayGuiScreen(null);
+                return;
+            case MODE_CONFIRM_LEAVE:
+                runTeamCommand("/team leave");
+                closeModal();
+                mc.displayGuiScreen(null);
+                return;
+            default: closeModal();
+        }
     }
 
     private void recomputeLayout() {
@@ -104,11 +264,30 @@ public class ClaimMapGui extends GuiScreen {
      */
     @Override
     protected void keyTyped(char c, int code) {
+        if (teamMode != MODE_NONE) {
+            if (code == Keyboard.KEY_ESCAPE) { closeModal(); return; }
+            if (code == Keyboard.KEY_RETURN || code == Keyboard.KEY_NUMPADENTER) { confirmModal(); return; }
+            if (teamInput != null) teamInput.textboxKeyTyped(c, code);
+            return;
+        }
         if (code == Keyboard.KEY_ESCAPE) mc.displayGuiScreen(null);
     }
 
     @Override
     protected void mouseClicked(int mx, int my, int btn) {
+        // Modal swallows clicks.
+        if (teamMode != MODE_NONE) {
+            handleModalClick(mx, my, btn);
+            return;
+        }
+        // Team-panel buttons take priority over grid clicks.
+        for (int i = 0; i < teamBtns.size(); i++) {
+            TeamBtn b = teamBtns.get(i);
+            if (mx >= b.x && mx < b.x + b.w && my >= b.y && my < b.y + b.h) {
+                openModal(b.action, b.arg);
+                return;
+            }
+        }
         int idx = cellAt(mx, my);
         if (idx < 0) return;
         int dx = (idx % (radius * 2 + 1)) - radius;
@@ -281,6 +460,10 @@ public class ClaimMapGui extends GuiScreen {
         drawCenteredString(fontRenderer,
                 "Left-click: claim / unclaim   Right-click: toggle chunk-load   Esc: close",
                 width / 2, ly + 12, 0xAAAAAA);
+
+        drawTeamPanel();
+
+        if (teamMode != MODE_NONE) drawModal();
     }
 
     private static String fmtLimit(int v) { return v < 0 ? "∞" : String.valueOf(v); }
@@ -414,6 +597,137 @@ public class ClaimMapGui extends GuiScreen {
             }
         }
         terrainColors = shaded;
+    }
+
+    private void handleModalClick(int mx, int my, int btn) {
+        if (btn != 0) return;
+        // Text input click (focus).
+        if (teamInput != null) teamInput.mouseClicked(mx, my, btn);
+        // Member chip click (Kick / Promote modes) - autofills the text field.
+        if (teamMode == MODE_PICK_KICK || teamMode == MODE_PICK_PROMOTE) {
+            String[] mem = ClientPacketHandler.myTeamMembers;
+            if (mem != null) {
+                int cx = width / 2 - 100;
+                int cy = height / 2 + 18;
+                int cw = 96;
+                int ch = 14;
+                int gap = 4;
+                for (int i = 0; i < mem.length && i < 8; i++) {
+                    int row = i / 2;
+                    int col = i % 2;
+                    int x = cx + col * (cw + gap);
+                    int y = cy + row * (ch + gap);
+                    if (mx >= x && mx < x + cw && my >= y && my < y + ch) {
+                        if (teamInput != null) { teamInput.setText(mem[i]); teamInput.setFocused(true); }
+                        return;
+                    }
+                }
+            }
+        }
+        // Confirm / Cancel buttons.
+        for (int i = 0; i < modalBtns.size(); i++) {
+            TeamBtn b = modalBtns.get(i);
+            if (mx >= b.x && mx < b.x + b.w && my >= b.y && my < b.y + b.h) {
+                if (b.action == MODE_NONE) closeModal();
+                else confirmModal();
+                return;
+            }
+        }
+    }
+
+    private void drawTeamPanel() {
+        rebuildTeamButtons();
+        for (int i = 0; i < teamBtns.size(); i++) drawButton(teamBtns.get(i));
+    }
+
+    private void drawButton(TeamBtn b) {
+        // Slight darken on hover for feedback.
+        int color = b.color;
+        // 1px border.
+        drawRect(b.x, b.y, b.x + b.w, b.y + b.h, 0xFF101418);
+        drawRect(b.x + 1, b.y + 1, b.x + b.w - 1, b.y + b.h - 1, color);
+        drawCenteredString(fontRenderer, b.label, b.x + b.w / 2, b.y + (b.h - 8) / 2, 0xFFFFFF);
+    }
+
+    private void drawModal() {
+        modalBtns.clear();
+        // Dim backdrop.
+        drawRect(0, 0, width, height, 0xC0000000);
+        int pw = 260;
+        int ph = modalPanelHeight(teamMode);
+        int px = (width - pw) / 2;
+        int py = modalPanelY(teamMode);
+        // Panel + 1px top/bottom highlight.
+        drawRect(px, py, px + pw, py + ph, 0xFF101418);
+        drawRect(px + 1, py + 1, px + pw - 1, py + 2, 0xFF606060);
+        drawRect(px + 1, py + ph - 2, px + pw - 1, py + ph - 1, 0xFF606060);
+
+        String title;
+        switch (teamMode) {
+            case MODE_INPUT_CREATE:    title = "Create team"; break;
+            case MODE_INPUT_INVITE:    title = "Invite player"; break;
+            case MODE_PICK_KICK:       title = "Kick member"; break;
+            case MODE_PICK_PROMOTE:    title = "Promote member to owner"; break;
+            case MODE_CONFIRM_DISBAND: title = "Disband team?"; break;
+            case MODE_CONFIRM_LEAVE:   title = "Leave team?"; break;
+            default:                   title = "";
+        }
+        drawCenteredString(fontRenderer, title, width / 2, py + 10, 0xFFFFFF);
+
+        if (teamInput != null) {
+            teamInput.drawTextBox();
+        }
+
+        if (teamMode == MODE_CONFIRM_DISBAND) {
+            drawCenteredString(fontRenderer, "§7All team claims will be released.",
+                    width / 2, py + 36, 0xFFAAAAAA);
+        } else if (teamMode == MODE_CONFIRM_LEAVE) {
+            drawCenteredString(fontRenderer, "§7You will lose access to team claims.",
+                    width / 2, py + 36, 0xFFAAAAAA);
+        }
+
+        // Member chips for kick/promote pickers. Drawn below the input field.
+        if (teamMode == MODE_PICK_KICK || teamMode == MODE_PICK_PROMOTE) {
+            drawCenteredString(fontRenderer, "§7Click a name to fill, or type it.",
+                    width / 2, py + 56, 0xFFAAAAAA);
+            String[] mem = ClientPacketHandler.myTeamMembers;
+            int cy = py + 70;
+            int cw = 110;
+            int ch = 14;
+            int gap = 4;
+            int cx = width / 2 - cw - gap / 2;
+            if (mem == null || mem.length == 0) {
+                drawCenteredString(fontRenderer, "§8(no members)", width / 2, cy + 4, 0xFF888888);
+            } else {
+                for (int i = 0; i < mem.length && i < 8; i++) {
+                    int row = i / 2;
+                    int col = i % 2;
+                    int x = cx + col * (cw + gap);
+                    int y = cy + row * (ch + gap);
+                    drawRect(x, y, x + cw, y + ch, 0xFF2A3A4A);
+                    drawCenteredString(fontRenderer, mem[i], x + cw / 2, y + 3, 0xFFCCDDEE);
+                }
+            }
+        }
+
+        // Error message just above the buttons.
+        if (teamInputError != null) {
+            drawCenteredString(fontRenderer, "§c" + teamInputError,
+                    width / 2, py + ph - 36, 0xFFFF5555);
+        }
+
+        // Confirm + Cancel buttons at the panel's bottom.
+        int by = py + ph - 22;
+        TeamBtn confirm = new TeamBtn();
+        confirm.x = width / 2 - 84; confirm.y = by; confirm.w = 80; confirm.h = 16;
+        confirm.label = "Confirm"; confirm.color = 0xFF2E8B57; confirm.action = teamMode;
+        TeamBtn cancel = new TeamBtn();
+        cancel.x = width / 2 + 4; cancel.y = by; cancel.w = 80; cancel.h = 16;
+        cancel.label = "Cancel"; cancel.color = 0xFF555555; cancel.action = MODE_NONE;
+        modalBtns.add(confirm);
+        modalBtns.add(cancel);
+        drawButton(confirm);
+        drawButton(cancel);
     }
 
     private static int shade(int argb, int factorPct) {

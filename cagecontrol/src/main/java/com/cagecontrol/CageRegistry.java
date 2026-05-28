@@ -59,6 +59,22 @@ public class CageRegistry extends WorldSavedData {
         markDirty();
     }
 
+    /**
+     * Renames an entry in place. The map key is derived from owner+name so we
+     * have to re-key. Returns false if the new name is already taken by the
+     * same owner.
+     */
+    public boolean rename(CageData d, String newName) {
+        if (d == null || newName == null) return false;
+        if (newName.equalsIgnoreCase(d.name)) return true;
+        if (nameTaken(d.owner, newName)) return false;
+        byKey.remove(d.key());
+        d.name = newName;
+        byKey.put(d.key(), d);
+        markDirty();
+        return true;
+    }
+
     public List<CageData> listOwnedBy(String owner) {
         List<CageData> r = new ArrayList<CageData>();
         for (CageData d : byKey.values()) {

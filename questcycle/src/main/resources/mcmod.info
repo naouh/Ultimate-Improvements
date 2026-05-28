@@ -1,0 +1,15 @@
+[
+{
+"modid": "questcycle",
+"name": "QuestCycle",
+"description": "Minimal config-driven quest mod with prestige cycle and titles. Built for MC 1.4.7.",
+"version": "0.1.0",
+"url": "",
+"authorList": ["Nao"],
+"credits": "",
+"logoFile": "",
+"screenshots": [],
+"dependencies": [],
+"mcversion": "1.4.7"
+}
+]

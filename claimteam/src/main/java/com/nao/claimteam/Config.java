@@ -78,14 +78,15 @@ public final class Config {
                     "player groups come from GM. Otherwise the [playerGroups] section is used.");
             useGroupManager = cfg.get("general", "useGroupManager", true).getBoolean(true);
 
-            cfg.addCustomCategoryComment("groupLimits",
+            cfg.addCustomCategoryComment("grouplimits",
                     "Per-group max claims and max chunkloads. Format: <group>.maxClaims, <group>.maxChunkloads. " +
                     "Use -1 for unlimited. Group names should match what your permission system uses.");
             ensureDefaultGroup(cfg, "Default", 25, 5);
             ensureDefaultGroup(cfg, "Builder", 50, 15);
             ensureDefaultGroup(cfg, "Moderator", 200, 50);
             ensureDefaultGroup(cfg, "Admin", -1, -1);
-            ConfigCategory glCat = cfg.getCategory("groupLimits");
+            ensureDefaultGroup(cfg, "Owner", -1, -1);
+            ConfigCategory glCat = cfg.getCategory("grouplimits");
             Map<String, Integer[]> agg = new HashMap<String, Integer[]>();
             for (Map.Entry<String, Property> e : glCat.getValues().entrySet()) {
                 String k = e.getKey();
@@ -105,13 +106,13 @@ public final class Config {
                 groupLimits.put(e.getKey(), new GroupLimits(e.getValue()[0], e.getValue()[1]));
             }
 
-            cfg.addCustomCategoryComment("playerGroups",
+            cfg.addCustomCategoryComment("playergroups",
                     "Fallback mapping when GroupManager is absent or disabled. <username>=<groupName>");
-            ConfigCategory pgCat = cfg.getCategory("playerGroups");
+            ConfigCategory pgCat = cfg.getCategory("playergroups");
             // ensure section exists (touch a default)
             if (pgCat.getValues().isEmpty()) {
-                cfg.get("playerGroups", "exampleAdmin", "Admin");
-                pgCat = cfg.getCategory("playerGroups");
+                cfg.get("playergroups", "exampleAdmin", "Admin");
+                pgCat = cfg.getCategory("playergroups");
             }
             for (Map.Entry<String, Property> e : pgCat.getValues().entrySet()) {
                 String user = e.getKey();
@@ -138,8 +139,8 @@ public final class Config {
     }
 
     private static void ensureDefaultGroup(Configuration cfg, String group, int maxClaims, int maxCL) {
-        cfg.get("groupLimits", group + ".maxClaims", maxClaims);
-        cfg.get("groupLimits", group + ".maxChunkloads", maxCL);
+        cfg.get("grouplimits", group + ".maxClaims", maxClaims);
+        cfg.get("grouplimits", group + ".maxChunkloads", maxCL);
     }
 
     /** Case-insensitive lookup; falls back to Default; if Default missing returns 25/5. */

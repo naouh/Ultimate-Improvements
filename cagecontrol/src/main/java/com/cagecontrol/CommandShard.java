@@ -43,7 +43,7 @@ public class CommandShard extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/shard <list|register <name>|<name> start|stop|<name> owner add|remove|list <player>>";
+        return "/shard <list|register <name>|<name> start|stop|rename <new>|owner add|remove|list <player>>";
     }
 
     @Override
@@ -102,6 +102,23 @@ public class CommandShard extends CommandBase {
             return;
         }
 
+        if ("rename".equals(action)) {
+            if (args.length < 3) { reply(epm, "Usage: /shard <name> rename <new>"); return; }
+            if (!d.isOwner(epm.username)) { reply(epm, "Only the owner can rename."); return; }
+            String newName = args[2].trim();
+            if (!newName.matches("[A-Za-z0-9_\\-]{1,24}")) {
+                reply(epm, "Invalid name (A-Z 0-9 _ -, max 24 chars)."); return;
+            }
+            String old = d.name;
+            if (!reg.rename(d, newName)) {
+                reply(epm, "You already have a cage named '" + newName + "'.");
+            } else {
+                reply(epm, "Cage '" + AQUA + old + RESET + "' renamed to '" + AQUA + newName + RESET + "'.");
+                PacketHandler.sendCageList(epm);
+            }
+            return;
+        }
+
         if (args.length != 2) throw new WrongUsageException(getCommandUsage(sender));
 
         WorldServer ws = findWorldByDim(d.dim);
@@ -119,6 +136,7 @@ public class CommandShard extends CommandBase {
             d.active = true;
             reg.markDirty();
             reply(epm, "Cage '" + AQUA + d.name + RESET + "' " + GREEN + "started" + RESET + ".");
+            PacketHandler.sendCageList(epm);
         } else if ("stop".equals(action)) {
             // keep mobType so the spawner visual stays; just block spawning via delay = MAX
             ReflectSS.disableSpawn(te);
@@ -127,6 +145,7 @@ public class CommandShard extends CommandBase {
             d.active = false;
             reg.markDirty();
             reply(epm, "Cage '" + AQUA + d.name + RESET + "' " + RED + "stopped" + RESET + ".");
+            PacketHandler.sendCageList(epm);
         } else {
             throw new WrongUsageException(getCommandUsage(sender));
         }
@@ -167,6 +186,7 @@ public class CommandShard extends CommandBase {
             if (d.addCoOwner(target)) {
                 reg.markDirty();
                 reply(epm, GREEN + "Added " + target + " as co-owner of '" + d.name + "'." + RESET);
+                PacketHandler.sendCageList(epm);
             } else {
                 reply(epm, target + " is already a co-owner.");
             }
@@ -174,6 +194,7 @@ public class CommandShard extends CommandBase {
             if (d.removeCoOwner(target)) {
                 reg.markDirty();
                 reply(epm, RED + "Removed " + target + " from co-owners of '" + d.name + "'." + RESET);
+                PacketHandler.sendCageList(epm);
             } else {
                 reply(epm, target + " is not a co-owner.");
             }
@@ -280,7 +301,7 @@ public class CommandShard extends CommandBase {
         }
         if (args.length == 2 && !"register".equalsIgnoreCase(args[0])) {
             List<String> r = new ArrayList<String>();
-            for (String s : new String[] { "start", "stop", "owner" })
+            for (String s : new String[] { "start", "stop", "owner", "rename" })
                 if (s.startsWith(args[1].toLowerCase())) r.add(s);
             return r;
         }

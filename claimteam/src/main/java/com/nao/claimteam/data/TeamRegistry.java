@@ -78,6 +78,23 @@ public class TeamRegistry extends WorldSavedData {
         return false;
     }
 
+    /**
+     * Hand ownership to {@code newOwner}, who must already be a regular member.
+     * The previous owner becomes a regular member. Returns true on success.
+     */
+    public boolean transferOwnership(ClaimTeam team, String newOwner) {
+        if (team == null || newOwner == null) return false;
+        String low = newOwner.toLowerCase();
+        if (!team.members.contains(low)) return false; // promote only existing members
+        if (team.owner != null && team.owner.equalsIgnoreCase(newOwner)) return false;
+        String oldOwner = team.owner;
+        team.members.remove(low);
+        if (oldOwner != null) team.members.add(oldOwner.toLowerCase());
+        team.owner = low;
+        markDirty();
+        return true;
+    }
+
     /** Remove the team and unregister all members. Returns the removed team. */
     public ClaimTeam disband(String name) {
         if (name == null) return null;

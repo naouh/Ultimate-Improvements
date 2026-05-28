@@ -24,6 +24,8 @@ public final class ClientPacketHandler {
     public static volatile int usedClaims, maxClaims;
     public static volatile int usedChunkloads, maxChunkloads;
     public static volatile String myTeam = "";
+    public static volatile String myTeamOwner = "";
+    public static volatile String[] myTeamMembers = new String[0];
     public static volatile long lastUpdateMs;
 
     public static void handle(Packet250CustomPayload packet) {
@@ -47,6 +49,10 @@ public final class ClientPacketHandler {
                 int usedCL = in.readInt();
                 int maxCL = in.readInt();
                 String mt = in.readUTF();
+                String mtOwner = in.readUTF();
+                int memCount = in.readInt();
+                String[] members = new String[memCount];
+                for (int i = 0; i < memCount; i++) members[i] = in.readUTF();
                 gridCenterCx = cx;
                 gridCenterCz = cz;
                 gridRadius = r;
@@ -57,16 +63,22 @@ public final class ClientPacketHandler {
                 usedChunkloads = usedCL;
                 maxChunkloads = maxCL;
                 myTeam = mt;
+                myTeamOwner = mtOwner;
+                myTeamMembers = members;
                 lastUpdateMs = System.currentTimeMillis();
             } else if (type == PacketHandler.PKT_TEAM_INFO) {
                 String name = in.readUTF();
-                in.readUTF();              // owner — reserved
-                in.readInt();              // member count — reserved
+                String ownerStr = in.readUTF();
+                int memCount = in.readInt();
                 int used = in.readInt();
                 int maxC = in.readInt();
                 int usedCL = in.readInt();
                 int maxCL = in.readInt();
+                String[] members = new String[memCount];
+                for (int i = 0; i < memCount; i++) members[i] = in.readUTF();
                 myTeam = name;
+                myTeamOwner = ownerStr;
+                myTeamMembers = members;
                 usedClaims = used;
                 maxClaims = maxC;
                 usedChunkloads = usedCL;

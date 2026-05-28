@@ -144,6 +144,14 @@ public class PacketHandler implements IPacketHandler {
             dos.writeInt(usedCL);
             dos.writeInt(limits.maxChunkloads);
             dos.writeUTF(myTeam == null ? "" : myTeam.name);
+            dos.writeUTF(myTeam == null || myTeam.owner == null ? "" : myTeam.owner);
+            // Member list for the team UI (excludes owner; owner is sent separately above).
+            if (myTeam == null) {
+                dos.writeInt(0);
+            } else {
+                dos.writeInt(myTeam.members.size());
+                for (String m : myTeam.members) dos.writeUTF(m);
+            }
         } catch (IOException e) {
             return;
         }
@@ -170,6 +178,11 @@ public class PacketHandler implements IPacketHandler {
             dos.writeInt(limits.maxClaims);
             dos.writeInt(usedCL);
             dos.writeInt(limits.maxChunkloads);
+            if (t == null) {
+                // No member list to ship.
+            } else {
+                for (String m : t.members) dos.writeUTF(m);
+            }
         } catch (IOException e) {
             return;
         }
