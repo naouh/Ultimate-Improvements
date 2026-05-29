@@ -1,0 +1,10 @@
+[{
+  "modid": "HDV",
+  "name": "Hotel de Vente",
+  "description": "Player auction house with a custom GUI, backed by the Essentials economy.",
+  "version": "0.1.0",
+  "mcversion": "1.4.7",
+  "authorList": ["Nao"],
+  "credits": "",
+  "dependencies": []
+}]

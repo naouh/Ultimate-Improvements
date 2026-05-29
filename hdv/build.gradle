@@ -1,0 +1,64 @@
+// Hotel de Vente (HDV) - a Forge 1.4.7 auction-house mod with a custom rendered GUI.
+//
+// Built with voldeloom (same toolchain as the claimteam mod). It is a normal @Mod (no ASM / coremod),
+// so the remapped jar is deployed to BOTH the client and the server mods/ folders. Economy is reached
+// at runtime by reflecting into the Essentials Bukkit plugin (MCPC+ hybrid server).
+
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.hdv'
+archivesBaseName = 'hdv'
+version = '0.1.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+}
+
+volde {
+}
+
+// Deploy the remapped (obfuscated) jar to both client and server mods/ folders.
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
+]
+
+task installMod {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installMod] SKIP (missing): ${dir}"
+			} else {
+				copy { from src; into dir }
+				println "[installMod] Copied ${src.name} -> ${dir}"
+			}
+		}
+	}
+}
+build.finalizedBy installMod
