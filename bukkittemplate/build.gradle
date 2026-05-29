@@ -1,0 +1,54 @@
+// Bukkit plugin template for MCPC+ 1.4.7 (Forge + Bukkit hybrid).
+//
+// Plain Java + plugin.yml -> a jar dropped in the server's plugins/ folder. No Forge/voldeloom.
+// Compiled against the server jar itself (mcpc-plus.jar bundles the whole org.bukkit API) because
+// the old Bukkit 1.4.7 Maven repos are long dead. compileOnly: the server provides these at runtime.
+//
+// To make a new plugin: copy this folder, rename it + rootProject.name + group/archivesBaseName,
+// the package under src/main/java, and the name/main in plugin.yml.
+
+plugins {
+	id 'java'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(8)   // MCPC+ 1.4.7 runs on Java 8
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.bukkittemplate'
+archivesBaseName = 'bukkittemplate'
+version = '1.0.0'
+
+// Path to the running server: source of the Bukkit API + where the plugin is deployed.
+ext.serverDir = "C:/Users/Nao/Desktop/ultimate-remastered"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly files("${serverDir}/mcpc-plus.jar")
+}
+
+processResources {
+	// Let plugin.yml use ${version} from gradle so it never drifts.
+	filesMatching('plugin.yml') {
+		expand(version: project.version)
+	}
+}
+
+task installToPlugins(type: Copy) {
+	def deployDir = file("${serverDir}/plugins")
+	from jar
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server plugins dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToPlugins] Copied ${jar.archivePath.name} -> ${deployDir}"
+	}
+}
+installToPlugins.dependsOn jar
+build.finalizedBy installToPlugins

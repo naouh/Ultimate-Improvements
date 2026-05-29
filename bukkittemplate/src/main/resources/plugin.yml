@@ -1,0 +1,9 @@
+name: BukkitTemplate
+main: com.nao.bukkittemplate.TemplatePlugin
+version: ${version}
+author: Naouh
+description: Template Bukkit plugin for MCPC+ 1.4.7.
+commands:
+  bukkittemplate:
+    description: Template command - replies with a greeting.
+    usage: /bukkittemplate
