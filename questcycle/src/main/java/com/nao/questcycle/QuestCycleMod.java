@@ -6,6 +6,7 @@ import com.nao.questcycle.config.QuestConfigLoader;
 import com.nao.questcycle.config.QuestConfigPaths;
 import com.nao.questcycle.data.PlayerStateCache;
 import com.nao.questcycle.event.ChatPrefixHandler;
+import com.nao.questcycle.event.DsuInteractHandler;
 import com.nao.questcycle.event.InventoryDeltaTracker;
 import com.nao.questcycle.event.PlayerLifecycleHandler;
 import com.nao.questcycle.network.QuestPacketHandler;
@@ -58,6 +59,8 @@ public class QuestCycleMod {
 	public void init(FMLInitializationEvent e) {
 		GameRegistry.registerPlayerTracker((IPlayerTracker) new PlayerLifecycleHandler());
 		MinecraftForge.EVENT_BUS.register(new ChatPrefixHandler());
+		// Validate "store N in a Deep Storage Unit" tasks when a player opens a DSU.
+		MinecraftForge.EVENT_BUS.register(new DsuInteractHandler());
 		// Single source for item-gained events: inventory delta scan per tick.
 		// Covers vanilla crafting, AE ME crafting, /give, mob drops, chest pulls.
 		TickRegistry.registerTickHandler(new InventoryDeltaTracker(), Side.SERVER);

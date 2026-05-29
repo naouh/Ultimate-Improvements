@@ -58,6 +58,21 @@ public final class TaskFactory {
 			}
 			return new HaveNamedTask(name, substring, count, iconId, iconMeta);
 		}
+		if (DsuNamedTask.TYPE.equals(type)) {
+			String name = Json.asString(json.get("name"), null);
+			if (name == null || name.length() == 0) throw new Json.JsonException(type + " task missing 'name'");
+			boolean substring = Json.asBool(json.get("substring"), false);
+			int count = Json.asInt(json.get("count"), 1);
+			if (count <= 0) throw new Json.JsonException(type + " task 'count' must be > 0");
+			int iconId = 0;
+			int iconMeta = 0;
+			Map<String, Object> icon = Json.asMap(json.get("icon"));
+			if (icon != null) {
+				iconId = Json.asInt(icon.get("id"), 0);
+				iconMeta = Json.asInt(icon.get("meta"), 0);
+			}
+			return new DsuNamedTask(name, substring, count, iconId, iconMeta);
+		}
 		throw new Json.JsonException("Unknown task type: '" + type + "'");
 	}
 }

@@ -31,7 +31,7 @@ import org.lwjgl.opengl.GL11;
  */
 public final class CustomTabOverlay extends Gui implements ITickHandler {
 	private static final int LINE_H = 12;
-	private static final int PANEL_W = 360;
+	private static final int PANEL_W = 280;
 	private static final int MAX_ROWS = 16;
 	private static final long REFRESH_MS = 3000L;
 
@@ -93,16 +93,14 @@ public final class CustomTabOverlay extends Gui implements ITickHandler {
 		int sw = sr.getScaledWidth();
 		int panelH = 30 + rows.size() * LINE_H;
 		int x = (sw - PANEL_W) / 2;
-		int y = 8;
+		int y = 50; // clear of the WAILA/top tooltip bar (item name + harvestability + mod = ~3 lines)
 
 		// Column x-offsets (relative to panel x). Single source of truth so header
 		// and rows always agree visually.
-		final int COL_STATUS = 8;
-		final int COL_TITLE  = 22;
-		final int COL_NAME   = 130;
-		final int COL_PREST  = 232;
-		final int COL_CYCLE  = 278;
-		final int COL_TITLES = 324;
+		final int COL_NAME   = 10;
+		final int COL_PREST  = 150;
+		final int COL_CYCLE  = 196;
+		final int COL_TITLES = 240;
 
 		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
@@ -118,28 +116,16 @@ public final class CustomTabOverlay extends Gui implements ITickHandler {
 		drawCenteredString(fr, "§l" + header, x + PANEL_W / 2, y + 5, 0xFFFFFF);
 
 		int hy = y + 18;
-		drawString(fr, "§7§n*", x + COL_STATUS + 2, hy, 0xFF909090); // status column has no real letter, just a marker
-		drawString(fr, "§7§nTitle", x + COL_TITLE, hy, 0xFF909090);
 		drawString(fr, "§7§nPlayer", x + COL_NAME, hy, 0xFF909090);
 		drawString(fr, "§7§nPrest", x + COL_PREST, hy, 0xFF909090);
 		drawString(fr, "§7§nCycle", x + COL_CYCLE, hy, 0xFF909090);
 		drawString(fr, "§7§nTitles", x + COL_TITLES, hy, 0xFF909090);
 
 		int cy = hy + LINE_H;
-		final int DOT_SIZE = 6;
-		final int DOT_X_OFFSET = 1;             // tiny nudge right so the dot sits under the "*"
 		for (int i = 0; i < rows.size(); i++) {
 			LeaderboardBuilder.Row r = rows.get(i);
 			int rowY = cy + i * LINE_H;
-			int dotColor = r.online ? 0xFF40DD60 : 0xFF606060;
-			// Vertically center the dot against the text row (text is ~8px tall, baseline ~rowY+8).
-			int dotY = rowY + (LINE_H - DOT_SIZE) / 2;
-			drawRect(x + COL_STATUS + DOT_X_OFFSET, dotY,
-			         x + COL_STATUS + DOT_X_OFFSET + DOT_SIZE, dotY + DOT_SIZE, dotColor);
-
-			String title = r.activeTitleDisplay == null ? "" : r.activeTitleDisplay;
-			drawString(fr, fit(title, 16), x + COL_TITLE, rowY + 1, 0xFFFFFF);
-			drawString(fr, fit(r.username, 14), x + COL_NAME, rowY + 1, r.online ? 0xFFFFFF : 0xFF909090);
+			drawString(fr, fit(r.username, 20), x + COL_NAME, rowY + 1, r.online ? 0xFFFFFF : 0xFF909090);
 			drawString(fr, "§6" + r.prestige, x + COL_PREST, rowY + 1, 0xFFFFAA00);
 			drawString(fr, r.cyclePct + "%", x + COL_CYCLE, rowY + 1, r.cyclePct >= 100 ? 0xFF40DD60 : 0xFFA0A0A0);
 			drawString(fr, "§7" + r.titlesCount, x + COL_TITLES, rowY + 1, 0xFF909090);

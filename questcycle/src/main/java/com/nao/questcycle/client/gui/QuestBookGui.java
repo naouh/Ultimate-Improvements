@@ -215,7 +215,9 @@ public final class QuestBookGui extends GuiScreen {
 		int cursorY = y + 6;
 		int[] questIcon = resolveQuestIcon(selected);
 		drawItemIcon(questIcon[0], questIcon[1], x + 6, cursorY);
-		drawString(fr, "§l" + selected.name, x + 26, cursorY + 4, GuiPalette.TEXT);
+		// Clip the title so long names (e.g. "Interdimensional Energy Storage Unit") don't bleed past the panel.
+		String titleStr = fr.trimStringToWidth("§l" + selected.name, w - 30);
+		drawString(fr, titleStr, x + 26, cursorY + 4, GuiPalette.TEXT);
 		cursorY += 22;
 
 		// desc, wrapped
@@ -392,20 +394,20 @@ public final class QuestBookGui extends GuiScreen {
 
 		// Shared column x-offsets relative to panel x. Single source so header + rows align.
 		// Panel usable width ~368px; columns sized to comfortably fit content widths.
-		final int COL_RANK   = 10;   // "Rank" ~25px → next col ~50
-		final int COL_NAME   = 50;   // "Player" 6 chars × ~6px ~36px, max-name 16 chars × ~6 ~96
-		final int COL_TITLE  = 150;  // "Title" can be wide (color codes free)
-		final int COL_PREST  = 250;
-		final int COL_TITLES = 290;
-		final int COL_CYCLE  = 325;
+		final int COL_RANK   = 10;
+		final int COL_NAME   = 46;
+		final int COL_PREST  = 206;
+		final int COL_ACHIEV = 262;
+		final int COL_CYCLE  = 322;
+
+		int totalAch = QuestRegistry.CURRENT != null ? QuestRegistry.CURRENT.section(QuestSection.ACHIEVEMENT).size() : 0;
 
 		int hy = yTop + 6;
-		drawString(fr, "§l§nRank",     x + COL_RANK,   hy, GuiPalette.TEXT_DIM);
-		drawString(fr, "§l§nPlayer",   x + COL_NAME,   hy, GuiPalette.TEXT_DIM);
-		drawString(fr, "§l§nTitle",    x + COL_TITLE,  hy, GuiPalette.TEXT_DIM);
-		drawString(fr, "§l§nPrest",    x + COL_PREST,  hy, GuiPalette.TEXT_DIM);
-		drawString(fr, "§l§nTitles",   x + COL_TITLES, hy, GuiPalette.TEXT_DIM);
-		drawString(fr, "§l§nCycle",    x + COL_CYCLE,  hy, GuiPalette.TEXT_DIM);
+		drawString(fr, "§l§nRank",   x + COL_RANK,   hy, GuiPalette.TEXT_DIM);
+		drawString(fr, "§l§nPlayer", x + COL_NAME,   hy, GuiPalette.TEXT_DIM);
+		drawString(fr, "§l§nPrest",  x + COL_PREST,  hy, GuiPalette.TEXT_DIM);
+		drawString(fr, "§l§nAchiev", x + COL_ACHIEV, hy, GuiPalette.TEXT_DIM);
+		drawString(fr, "§l§nCycle",  x + COL_CYCLE,  hy, GuiPalette.TEXT_DIM);
 
 		int cy = hy + LINE_H + 4;
 		List<LeaderboardBuilder.Row> rows = ClientState.leaderboard;
@@ -419,10 +421,8 @@ public final class QuestBookGui extends GuiScreen {
 			int col = me ? 0xFFFFDD66 : GuiPalette.TEXT;
 			drawString(fr, "#" + (i + 1), x + COL_RANK, cy, col);
 			drawString(fr, r.username, x + COL_NAME, cy, col);
-			String title = r.activeTitleDisplay == null ? "" : r.activeTitleDisplay;
-			drawString(fr, title, x + COL_TITLE, cy, GuiPalette.TEXT_DIM);
 			drawString(fr, "§6" + r.prestige, x + COL_PREST, cy, 0xFFFFAA00);
-			drawString(fr, "§7" + r.titlesCount, x + COL_TITLES, cy, GuiPalette.TEXT_DIM);
+			drawString(fr, "§7" + r.titlesCount + "/" + totalAch, x + COL_ACHIEV, cy, GuiPalette.TEXT_DIM);
 			drawString(fr, r.cyclePct + "%", x + COL_CYCLE, cy,
 					r.cyclePct >= 100 ? 0xFF40DD60 : GuiPalette.TEXT_DIM);
 			cy += rowH;
