@@ -32,6 +32,12 @@ public final class CompletionEngine {
 
 		if (!questComplete) return;
 
+		// Celebrate only the first time this quest is completed in the current cycle. Without
+		// this, tasks whose counter mirrors live state (have_named) re-fire the toast every time
+		// the player re-crosses the target after a drop + re-pickup, spamming "Quest complete"
+		// and re-running the title-grant pipeline for an already-earned achievement.
+		if (!e.progress.markCelebrated(q.id)) return;
+
 		// Quest just completed.
 		String headline = "Quest complete: " + q.name;
 		PacketDispatcher.sendPacketToPlayer(

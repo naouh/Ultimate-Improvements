@@ -9,6 +9,7 @@ import com.nao.questcycle.data.QuestSection;
 import com.nao.questcycle.data.TitleDef;
 import com.nao.questcycle.network.PacketBuilder;
 import com.nao.questcycle.network.QuestPacketHandler;
+import com.nao.questcycle.task.HaveNamedTask;
 import com.nao.questcycle.task.NamedMatchTask;
 import com.nao.questcycle.task.QuestTask;
 import cpw.mods.fml.common.network.PacketDispatcher;
@@ -266,29 +267,34 @@ public final class QuestBookGui extends GuiScreen {
 	 */
 	private static int[] resolveQuestIcon(QuestDef q) {
 		for (int i = 0; i < q.tasks.size(); i++) {
-			QuestTask t = q.tasks.get(i);
-			if (t instanceof NamedMatchTask) {
-				int[] hit = ItemNameIndex.lookup(((NamedMatchTask) t).displayLabel);
-				if (hit != null) return hit;
-			}
-			if (t.targetItemId() > 0) return new int[]{t.targetItemId(), t.targetItemMeta()};
+			int[] icon = resolveTaskIcon(q.tasks.get(i), q);
+			if (icon[0] > 0) return icon;
 		}
 		if (q.iconItemId > 0) return new int[]{q.iconItemId, q.iconItemMeta};
 		return new int[]{0, 0};
 	}
 
+	/**
+	 * Resolve a single task's icon. Name-matched tasks (craft_named / obtain_named /
+	 * have_named) resolve by display name first so modded items - IC2 ingots, GregTech
+	 * machines, etc. - render even when the JSON icon id is a wrong/absent proxy.
+	 */
+	private static int[] resolveTaskIcon(QuestTask t, QuestDef quest) {
+		if (t instanceof NamedMatchTask || t instanceof HaveNamedTask) {
+			int[] hit = ItemNameIndex.lookup(t.displayName());
+			if (hit != null) return hit;
+		}
+		if (t.targetItemId() > 0) return new int[]{t.targetItemId(), t.targetItemMeta()};
+		int[] hit = ItemNameIndex.lookup(t.displayName());
+		if (hit != null) return hit;
+		if (quest != null && quest.iconItemId > 0) return new int[]{quest.iconItemId, quest.iconItemMeta};
+		return new int[]{0, 0};
+	}
+
 	private void drawTaskRow(int x, int y, int w, QuestTask t, int currentCount, QuestDef quest) {
 		FontRenderer fr = mc.fontRenderer;
-		// Task icon priority: explicit task icon, then auto-resolve from display name,
-		// then the quest's icon as last-resort fallback.
-		int iconId = t.targetItemId();
-		int iconMeta = t.targetItemMeta();
-		if (iconId <= 0) {
-			int[] hit = ItemNameIndex.lookup(t.displayName());
-			if (hit != null) { iconId = hit[0]; iconMeta = hit[1]; }
-			else if (quest != null) { iconId = quest.iconItemId; iconMeta = quest.iconItemMeta; }
-		}
-		drawItemIcon(iconId, iconMeta, x, y);
+		int[] icon = resolveTaskIcon(t, quest);
+		drawItemIcon(icon[0], icon[1], x, y);
 		drawString(fr, t.displayName(), x + 22, y + 2, GuiPalette.TEXT);
 		String progress = currentCount + "/" + t.targetCount();
 		drawString(fr, progress, x + w - fr.getStringWidth(progress), y + 2, GuiPalette.TEXT_DIM);

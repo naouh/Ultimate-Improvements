@@ -104,6 +104,9 @@ public final class InventoryDeltaTracker implements ITickHandler {
 				if (!(t instanceof HaveNamedTask)) continue;
 				HaveNamedTask have = (HaveNamedTask) t;
 				int prev = cacheEntry.progress.getTaskCount(q.id, i);
+				// "Have N at once" is a milestone: once the player has demonstrated it, the task
+				// stays satisfied. Don't let dropping/spending the items un-complete it afterwards.
+				if (prev >= have.target) continue;
 				int now = have.countInInventory(player);
 				if (now > have.target) now = have.target;
 				if (now == prev) continue;

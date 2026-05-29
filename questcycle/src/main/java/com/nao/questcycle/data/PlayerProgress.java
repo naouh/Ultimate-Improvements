@@ -3,9 +3,11 @@ package com.nao.questcycle.data;
 import com.nao.questcycle.config.Json;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Per-player, per-quest counters. Lives in world/questcycle/players/<user>.json -
@@ -18,12 +20,17 @@ import java.util.Map;
 public final class PlayerProgress {
 	public final String username;
 	private final Map<String, int[]> taskCounters;
+	/** Quest ids that have already fired their completion celebration this cycle. Prevents the
+	 * "Quest complete" toast / title grant from re-firing when a quest re-crosses its target
+	 * (e.g. a have_named counter that mirrors inventory after a drop + re-pickup). */
+	private final Set<String> celebratedQuestIds;
 	/** True once the player has been awarded +1 prestige for the CURRENT cycle. Cleared on world reset (since the whole file gets deleted with the world dir). */
 	public boolean cycleAwarded;
 
 	public PlayerProgress(String username) {
 		this.username = username;
 		this.taskCounters = new HashMap<String, int[]>();
+		this.celebratedQuestIds = new HashSet<String>();
 		this.cycleAwarded = false;
 	}
 
@@ -94,9 +101,16 @@ public final class PlayerProgress {
 		return true;
 	}
 
+	/** Marks a quest as having fired its completion celebration. Returns true the first time
+	 * (per cycle), false if it was already celebrated. */
+	public boolean markCelebrated(String questId) {
+		return celebratedQuestIds.add(questId);
+	}
+
 	/** Resets all counters to zero. Used on prestige cycle award. */
 	public void resetAll() {
 		taskCounters.clear();
+		celebratedQuestIds.clear();
 	}
 
 	public Map<String, int[]> snapshotCounters() {
@@ -120,6 +134,7 @@ public final class PlayerProgress {
 			counters.put(e.getKey(), arr);
 		}
 		out.put("tasks", counters);
+		out.put("celebrated", new ArrayList<Object>(celebratedQuestIds));
 		return out;
 	}
 
@@ -134,6 +149,13 @@ public final class PlayerProgress {
 				int[] vals = new int[arr.size()];
 				for (int i = 0; i < arr.size(); i++) vals[i] = Json.asInt(arr.get(i), 0);
 				p.taskCounters.put(e.getKey(), vals);
+			}
+		}
+		List<Object> celebrated = Json.asList(root.get("celebrated"));
+		if (celebrated != null) {
+			for (int i = 0; i < celebrated.size(); i++) {
+				Object id = celebrated.get(i);
+				if (id != null) p.celebratedQuestIds.add(String.valueOf(id));
 			}
 		}
 		return p;
