@@ -44,6 +44,15 @@ public final class CustomTabOverlay extends Gui implements ITickHandler {
 		// Suppress the vanilla tab list aggressively every frame BEFORE the HUD draws.
 		// This needs to happen on RENDER tickStart (runs immediately before GuiIngame).
 		if (type.contains(TickType.RENDER)) {
+			// Not in a world (main menu / between servers): drop any stale leaderboard so it
+			// doesn't bleed across servers, and let the vanilla tab list behave normally.
+			if (mc == null || mc.thePlayer == null) {
+				if (!ClientState.leaderboard.isEmpty()) {
+					ClientState.leaderboard = new ArrayList<LeaderboardBuilder.Row>();
+				}
+				tabHeldThisFrame = false;
+				return;
+			}
 			tabHeldThisFrame = isTabHeld();
 			KeyBinding kb = mc.gameSettings.keyBindPlayerList;
 			if (kb != null && tabHeldThisFrame) kb.pressed = false;
@@ -76,8 +85,12 @@ public final class CustomTabOverlay extends Gui implements ITickHandler {
 	private void drawOverlay() {
 		List<LeaderboardBuilder.Row> all = ClientState.leaderboard;
 		if (all == null) all = new ArrayList<LeaderboardBuilder.Row>();
-		// Online first, then by prestige desc, then by username.
-		List<LeaderboardBuilder.Row> rows = new ArrayList<LeaderboardBuilder.Row>(all);
+		// The tab list is "who's online right now" - drop offline players (the leaderboard
+		// data set includes everyone ever seen).
+		List<LeaderboardBuilder.Row> rows = new ArrayList<LeaderboardBuilder.Row>();
+		for (int i = 0; i < all.size(); i++) {
+			if (all.get(i).online) rows.add(all.get(i));
+		}
 		Collections.sort(rows, new Comparator<LeaderboardBuilder.Row>() {
 			@Override
 			public int compare(LeaderboardBuilder.Row a, LeaderboardBuilder.Row b) {
