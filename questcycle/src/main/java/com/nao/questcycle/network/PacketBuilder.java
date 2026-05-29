@@ -127,8 +127,12 @@ public final class PacketBuilder {
 		DataOutputStream out = new DataOutputStream(baos);
 		try {
 			out.writeByte(QuestPacketHandler.PKT_QUEST_DEFINITIONS);
-			byte[] q = questsJson == null ? new byte[0] : questsJson.getBytes("UTF-8");
-			byte[] a = achievementsJson == null ? new byte[0] : achievementsJson.getBytes("UTF-8");
+			// GZIP both JSON blobs: a Packet250CustomPayload encodes its length as a signed
+			// short (max 32767 bytes), and the raw quests.json alone now exceeds that, which
+			// overflows the length field and desyncs the whole connection on login. Compressed
+			// JSON is ~6x smaller, keeping us comfortably under the cap.
+			byte[] q = gzip(questsJson);
+			byte[] a = gzip(achievementsJson);
 			out.writeInt(q.length);
 			out.write(q);
 			out.writeInt(a.length);
@@ -137,6 +141,15 @@ public final class PacketBuilder {
 			throw new RuntimeException(e);
 		}
 		return baos.toByteArray();
+	}
+
+	private static byte[] gzip(String s) throws java.io.IOException {
+		byte[] raw = (s == null ? "" : s).getBytes("UTF-8");
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(bos);
+		gz.write(raw);
+		gz.close();
+		return bos.toByteArray();
 	}
 
 	public static byte[] questConfigDigest(int totalPrestige, int totalAchievements, int totalTitles) {

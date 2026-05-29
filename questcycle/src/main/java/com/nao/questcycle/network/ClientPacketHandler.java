@@ -98,13 +98,24 @@ public final class ClientPacketHandler {
 		int aLen = in.readInt();
 		byte[] aBuf = new byte[aLen];
 		in.readFully(aBuf);
-		String qJson = new String(qBuf, "UTF-8");
-		String aJson = new String(aBuf, "UTF-8");
+		String qJson = gunzip(qBuf);
+		String aJson = gunzip(aBuf);
 		String err = com.nao.questcycle.config.QuestConfigLoader.loadFromStrings(qJson, aJson);
 		if (err != null) {
 			System.err.println("[QuestCycle] server-pushed quest config rejected: " + err);
 		} else {
-			System.out.println("[QuestCycle] applied server-pushed quest config (" + qLen + "+" + aLen + " bytes)");
+			System.out.println("[QuestCycle] applied server-pushed quest config (" + qLen + "+" + aLen + " gzip bytes)");
 		}
+	}
+
+	private static String gunzip(byte[] data) throws Exception {
+		if (data == null || data.length == 0) return "";
+		java.util.zip.GZIPInputStream gz = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(data));
+		java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+		byte[] tmp = new byte[4096];
+		int n;
+		while ((n = gz.read(tmp)) != -1) bos.write(tmp, 0, n);
+		gz.close();
+		return new String(bos.toByteArray(), "UTF-8");
 	}
 }

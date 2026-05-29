@@ -280,24 +280,48 @@ public final class QuestBookGui extends GuiScreen {
 	 * machines, etc. - render even when the JSON icon id is a wrong/absent proxy.
 	 */
 	private static int[] resolveTaskIcon(QuestTask t, QuestDef quest) {
-		if (t instanceof NamedMatchTask || t instanceof HaveNamedTask) {
-			int[] hit = ItemNameIndex.lookup(t.displayName());
-			if (hit != null) return hit;
-		}
-		if (t.targetItemId() > 0) return new int[]{t.targetItemId(), t.targetItemMeta()};
+		int tid = t.targetItemId();
+		int tmeta = t.targetItemMeta();
+		// 1. An explicit icon wins ONLY when it resolves to a real item whose display name
+		//    matches the task target. This pins the right mod's variant when several register
+		//    the same name (IC2 vs Forestry "Bronze Ingot") or a specific block meta (GregTech),
+		//    without letting a vanilla placeholder proxy (iron block, gold ingot...) hide the
+		//    real modded item that name resolution would find.
+		if (isRealItem(tid) && displayNameEquals(tid, tmeta, t.displayName())) return new int[]{tid, tmeta};
+		// 2. Resolve by display name - covers modded items without a pinned icon.
 		int[] hit = ItemNameIndex.lookup(t.displayName());
 		if (hit != null) return hit;
-		if (quest != null && quest.iconItemId > 0) return new int[]{quest.iconItemId, quest.iconItemMeta};
+		// 3. Fall back to any explicit icon (task then quest) as a last-resort proxy.
+		if (isRealItem(tid)) return new int[]{tid, tmeta};
+		if (quest != null && isRealItem(quest.iconItemId)) return new int[]{quest.iconItemId, quest.iconItemMeta};
 		return new int[]{0, 0};
+	}
+
+	private static boolean isRealItem(int id) {
+		return id > 0 && id < Item.itemsList.length && Item.itemsList[id] != null;
+	}
+
+	private static boolean displayNameEquals(int id, int meta, String name) {
+		if (name == null) return false;
+		try {
+			ItemStack s = new ItemStack(Item.itemsList[id], 1, meta < 0 ? 0 : meta);
+			String dn = s.getItem().getItemDisplayName(s);
+			return dn != null && dn.equalsIgnoreCase(name);
+		} catch (Throwable th) {
+			return false;
+		}
 	}
 
 	private void drawTaskRow(int x, int y, int w, QuestTask t, int currentCount, QuestDef quest) {
 		FontRenderer fr = mc.fontRenderer;
 		int[] icon = resolveTaskIcon(t, quest);
 		drawItemIcon(icon[0], icon[1], x, y);
-		drawString(fr, t.displayName(), x + 22, y + 2, GuiPalette.TEXT);
 		String progress = currentCount + "/" + t.targetCount();
-		drawString(fr, progress, x + w - fr.getStringWidth(progress), y + 2, GuiPalette.TEXT_DIM);
+		int progW = fr.getStringWidth(progress);
+		// Clip the task name so a long item name can't overrun into the progress counter.
+		String label = fr.trimStringToWidth(t.displayName(), w - 22 - progW - 8);
+		drawString(fr, label, x + 22, y + 2, GuiPalette.TEXT);
+		drawString(fr, progress, x + w - progW, y + 2, GuiPalette.TEXT_DIM);
 		int barX = x + 22;
 		int barW = w - 22 - fr.getStringWidth(progress) - 6;
 		drawRect(barX, y + 13, barX + barW, y + 17, GuiPalette.PROGRESS_BG);
@@ -466,8 +490,12 @@ public final class QuestBookGui extends GuiScreen {
 	private void drawItemIcon(int itemId, int meta, int x, int y) {
 		if (itemId <= 0 || itemId >= Item.itemsList.length || Item.itemsList[itemId] == null) return;
 		ItemStack stack = new ItemStack(Item.itemsList[itemId], 1, meta < 0 ? 0 : meta);
-		GL11.glEnable(GL11.GL_LIGHTING);
+		// Use the standard GUI item lighting rig. Raw glEnable(GL_LIGHTING) inherits whatever
+		// light colour/normals were last set, which tints 3D-rendered blocks (machines) green.
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
+		net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
 		ITEM_RENDERER.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.renderEngine, stack, x, y);
+		net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
 		GL11.glDisable(GL11.GL_LIGHTING);
 		GL11.glColor4f(1f, 1f, 1f, 1f);
 	}
