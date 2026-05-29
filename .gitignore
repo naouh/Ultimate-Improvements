@@ -14,6 +14,7 @@
 !/paintbrush/
 !/translocator/
 !/windowitemsfix/
+!/ic2netfix/
 !/questcycle/
 
 # Per-mod ignores: gradle build outputs, IDE files, decompiled reference

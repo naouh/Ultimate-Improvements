@@ -1,0 +1,15 @@
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		maven {
+			url 'https://repo.sleeping.town'
+			content {
+				includeGroup 'agency.highlysuspect'
+			}
+		}
+		mavenCentral()
+		mavenLocal()
+	}
+}
+
+rootProject.name = 'ic2netfix'
