@@ -42,3 +42,19 @@ dependencies {
 volde {
 	// default config; nothing to override.
 }
+
+task installToMods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Mods deploy dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToMods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToMods.dependsOn remapJarForRelease
+build.finalizedBy installToMods

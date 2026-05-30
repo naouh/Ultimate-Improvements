@@ -194,13 +194,25 @@ public class GuiCageControl extends GuiScreen {
 
     // ----- actions -----
 
+    /**
+     * Build the cage identifier sent over chat. If the caller doesn't own the cage (i.e. an
+     * admin acting on someone else's), prefix with {@code owner:} so the server can resolve it
+     * unambiguously even if multiple players have a cage of the same name.
+     */
+    private String idFor(CageData d) {
+        String me = myUser();
+        boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
+        if (mine || d.owner == null || d.owner.isEmpty()) return d.name;
+        return d.owner + ":" + d.name;
+    }
+
     private void actionRename() {
         CageData d = selected();
         if (d == null) return;
         String n = renameField.getText().trim();
         if (n.length() == 0) return;
         if (n.equalsIgnoreCase(d.name)) return;
-        runShard("/shard " + d.name + " rename " + n);
+        runShard("/shard " + idFor(d) + " rename " + n);
         setStatus("Rename sent: " + d.name + " -> " + n);
     }
 
@@ -209,7 +221,7 @@ public class GuiCageControl extends GuiScreen {
         if (d == null) return;
         String p = coOwnerField.getText().trim();
         if (p.length() < 2) { setStatus("Enter a player name."); return; }
-        runShard("/shard " + d.name + " owner add " + p);
+        runShard("/shard " + idFor(d) + " owner add " + p);
         coOwnerField.setText("");
         setStatus("Co-owner add sent: " + p);
     }
@@ -217,14 +229,14 @@ public class GuiCageControl extends GuiScreen {
     private void actionRemoveCoOwner(String co) {
         CageData d = selected();
         if (d == null) return;
-        runShard("/shard " + d.name + " owner remove " + co);
+        runShard("/shard " + idFor(d) + " owner remove " + co);
         setStatus("Co-owner remove sent: " + co);
     }
 
     private void actionToggle() {
         CageData d = selected();
         if (d == null) return;
-        runShard("/shard " + d.name + (d.active ? " stop" : " start"));
+        runShard("/shard " + idFor(d) + (d.active ? " stop" : " start"));
         setStatus(d.active ? "Stop sent." : "Start sent.");
     }
 

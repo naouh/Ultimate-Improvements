@@ -66,6 +66,8 @@ public class CommandShard extends CommandBase {
             reply(sender, "This command can only be used in-game."); return;
         }
         EntityPlayerMP epm = (EntityPlayerMP) sender;
+        boolean isAdmin = MinecraftServer.getServer().getConfigurationManager()
+                .areCommandsAllowed(epm.username);
 
         if (args.length == 1 && "list".equalsIgnoreCase(args[0])) {
             CageCleanupTick.runScan();
@@ -94,17 +96,30 @@ public class CommandShard extends CommandBase {
         String action = args[1].toLowerCase();
 
         CageRegistry reg = CageRegistry.get(epm.worldObj);
-        CageData d = reg.findControllable(epm.username, name);
-        if (d == null) { reply(epm, "No cage named '" + name + "' you can control."); return; }
+        CageData d = resolveCage(reg, epm.username, isAdmin, name);
+        if (d == null) {
+            if (name.indexOf(':') >= 0) {
+                reply(epm, "No cage matches '" + name + "'.");
+            } else if (isAdmin) {
+                reply(epm, "No cage named '" + name + "' found. Use <owner>:<name> to disambiguate.");
+            } else {
+                reply(epm, "No cage named '" + name + "' you can control.");
+            }
+            return;
+        }
+        if (!isAdmin && !d.canControl(epm.username)) {
+            reply(epm, "You are not an owner or co-owner of '" + d.name + "'.");
+            return;
+        }
 
         if ("owner".equals(action)) {
-            handleOwner(epm, reg, d, args);
+            handleOwner(epm, reg, d, args, isAdmin);
             return;
         }
 
         if ("rename".equals(action)) {
             if (args.length < 3) { reply(epm, "Usage: /shard <name> rename <new>"); return; }
-            if (!d.isOwner(epm.username)) { reply(epm, "Only the owner can rename."); return; }
+            if (!d.isOwner(epm.username) && !isAdmin) { reply(epm, "Only the owner can rename."); return; }
             String newName = args[2].trim();
             if (!newName.matches("[A-Za-z0-9_\\-]{1,24}")) {
                 reply(epm, "Invalid name (A-Z 0-9 _ -, max 24 chars)."); return;
@@ -151,7 +166,8 @@ public class CommandShard extends CommandBase {
         }
     }
 
-    private static void handleOwner(EntityPlayerMP epm, CageRegistry reg, CageData d, String[] args) {
+    private static void handleOwner(EntityPlayerMP epm, CageRegistry reg, CageData d,
+                                    String[] args, boolean isAdmin) {
         // args = [<cageName>, "owner", <sub>, <player?>]
         if (args.length < 3) {
             reply(epm, "Usage: /shard <name> owner <add|remove|list> [player]"); return;
@@ -174,7 +190,7 @@ public class CommandShard extends CommandBase {
             return;
         }
 
-        if (!d.isOwner(epm.username)) {
+        if (!d.isOwner(epm.username) && !isAdmin) {
             reply(epm, "Only the primary owner (" + d.owner + ") can manage co-owners.");
             return;
         }
@@ -201,6 +217,59 @@ public class CommandShard extends CommandBase {
         } else {
             reply(epm, "Unknown subcommand: " + sub);
         }
+    }
+
+    /**
+     * Resolve a cage from the user-facing name argument. Three accepted forms:
+     * <ul>
+     *   <li>{@code name} — looked up as one of the caller's controllable cages first; for admins,
+     *       falls back to a global name search if none of theirs match.</li>
+     *   <li>{@code owner:name} — direct {@code byOwnerName} lookup. Anyone can use this form to
+     *       disambiguate; permission is still re-checked by the caller.</li>
+     *   <li>{@code @x,y,z} — for admins only: positional lookup. Useful when the name is gone
+     *       or ambiguous and you have coordinates from the GUI.</li>
+     * </ul>
+     * The caller is responsible for re-checking that {@code canControl(player)} holds when
+     * {@code isAdmin} is false.
+     */
+    private static CageData resolveCage(CageRegistry reg, String player, boolean isAdmin, String arg) {
+        if (arg == null || arg.isEmpty()) return null;
+
+        if (arg.charAt(0) == '@' && isAdmin) {
+            String[] parts = arg.substring(1).split(",");
+            if (parts.length == 3) {
+                try {
+                    int x = Integer.parseInt(parts[0].trim());
+                    int y = Integer.parseInt(parts[1].trim());
+                    int z = Integer.parseInt(parts[2].trim());
+                    return reg.findByPos(x, y, z);
+                } catch (NumberFormatException ignored) { /* fall through */ }
+            }
+            return null;
+        }
+
+        int colon = arg.indexOf(':');
+        if (colon > 0 && colon < arg.length() - 1) {
+            String owner = arg.substring(0, colon);
+            String name  = arg.substring(colon + 1);
+            return reg.findByOwnerName(owner, name);
+        }
+
+        CageData own = reg.findControllable(player, arg);
+        if (own != null) return own;
+        if (!isAdmin) return null;
+
+        // Admin global fallback: pick the first cage that matches the name. If multiple share
+        // the name across owners, the caller will need to use owner:name to disambiguate; we
+        // return null in that case so the error message asks for that.
+        CageData match = null;
+        for (CageData d : reg.snapshot()) {
+            if (d.name != null && d.name.equalsIgnoreCase(arg)) {
+                if (match != null) return null; // ambiguous
+                match = d;
+            }
+        }
+        return match;
     }
 
     private static WorldServer findWorldByDim(int dim) {
