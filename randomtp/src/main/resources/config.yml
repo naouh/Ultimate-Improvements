@@ -1,0 +1,25 @@
+# RandomTP configuration.
+
+# Cooldown between two /rtp uses, per player, in seconds. 0 = no cooldown.
+# Players with the rtp.bypass permission ignore this.
+cooldown-seconds: 120
+
+# Warmup before the teleport actually happens, in seconds. 0 = instant.
+# During the warmup the player must not move (block position) or the teleport is cancelled.
+warmup-seconds: 3
+
+# Search radius around the world spawn (blocks). A random point is picked in this ring.
+min-radius: 250
+max-radius: 5000
+
+# How many random points to try before giving up (each point may load a chunk).
+max-attempts: 50
+
+# Treat water as unsafe to land in (lava and fire are always unsafe).
+avoid-water: true
+
+# World filtering. If 'enabled' is non-empty, ONLY those worlds allow /rtp.
+# Otherwise every world is allowed except those listed in 'disabled'.
+worlds:
+  enabled: []
+  disabled: []

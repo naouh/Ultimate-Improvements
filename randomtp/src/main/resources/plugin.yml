@@ -1,0 +1,25 @@
+name: RandomTP
+main: com.nao.randomtp.RandomTpPlugin
+version: ${version}
+author: Naouh
+description: Random surface teleport (/rtp) in the player's current world, with a configurable cooldown.
+commands:
+  rtp:
+    description: Teleport to a random safe surface location in your current world.
+    usage: /rtp
+    aliases: [randomtp, wild]
+    permission: rtp.use
+  rtpreload:
+    description: Reload the RandomTP config.
+    usage: /rtpreload
+    permission: rtp.admin
+permissions:
+  rtp.use:
+    description: Allows using /rtp.
+    default: true
+  rtp.bypass:
+    description: Bypass the /rtp cooldown and warmup.
+    default: op
+  rtp.admin:
+    description: Reload the RandomTP config.
+    default: op
