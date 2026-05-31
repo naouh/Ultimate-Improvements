@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "VoiceChat",
+    "name": "VoiceChat",
+    "description": "In-game proximity voice chat for Minecraft 1.4.7. UDP audio side-channel (8 kHz μ-law mono, 20 ms frames) with handshake over the standard Forge custom-payload channel. Push-to-talk (V), per-talker distance attenuation.",
+    "version": "0.1.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "authorList": ["Nao"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
