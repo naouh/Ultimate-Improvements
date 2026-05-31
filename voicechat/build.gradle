@@ -35,18 +35,26 @@ dependencies {
 volde {
 }
 
-task installToMods(type: Copy) {
-	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods")
-	from(remapJarForRelease.archivePath)
-	into deployDir
-	doFirst {
-		if (!deployDir.exists()) {
-			throw new GradleException("Mods deploy dir does not exist: " + deployDir)
+// Deploy to both client and server mods/. The UDP listener + session map live server-side, so
+// the server needs the matching jar to receive audio + send the keepalive ACK. Missing targets
+// are skipped rather than failing the build.
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
+]
+
+task installToMods {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installToMods] SKIP (missing): ${dir}"
+			} else {
+				copy { from src; into dir }
+				println "[installToMods] Copied ${src.name} -> ${dir}"
+			}
 		}
 	}
-	doLast {
-		println "[installToMods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
-	}
 }
-installToMods.dependsOn remapJarForRelease
 build.finalizedBy installToMods
