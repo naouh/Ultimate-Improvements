@@ -1,0 +1,64 @@
+// DiscordRPC - a client-side Forge 1.4.7 mod that sets each player's Discord Rich Presence to
+// "Playing on <server>" while they are connected to a multiplayer server.
+//
+// Built with voldeloom (same toolchain as hdv/claimteam). Client-only: it talks to the local Discord
+// client over IPC (Windows named pipe) in pure Java - no native libraries. On a dedicated server the
+// mod loads but does nothing (the client proxy holds all the logic). Deploy to the client mods/ only.
+
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.discordrpc'
+archivesBaseName = 'discordrpc'
+version = '0.1.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+}
+
+volde {
+}
+
+// Client-only mod: deploy the remapped jar to the client mods/ folder(s).
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods")
+]
+
+task installMod {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installMod] SKIP (missing): ${dir}"
+			} else {
+				copy { from src; into dir }
+				println "[installMod] Copied ${src.name} -> ${dir}"
+			}
+		}
+	}
+}
+build.finalizedBy installMod

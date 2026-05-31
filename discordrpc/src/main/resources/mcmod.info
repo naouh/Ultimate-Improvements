@@ -1,0 +1,10 @@
+[{
+  "modid": "DiscordRPC",
+  "name": "Discord Rich Presence",
+  "description": "Shows 'Playing on <server>' in each player's Discord activity while connected.",
+  "version": "0.1.0",
+  "mcversion": "1.4.7",
+  "authorList": ["Nao"],
+  "credits": "",
+  "dependencies": []
+}]
