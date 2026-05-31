@@ -18,19 +18,17 @@ import org.lwjgl.input.Keyboard;
  *   - "Mine"  : cages the player owns or co-owns
  *   - "All"   : every cage in the world (visible to OPs only)
  *
- * Left side: scrollable list of cages. Click one to select.
- * Right side: detail panel with rename field, co-owner list + add box,
- * a Start/Stop button, and (admin only on the All view) a Delete button.
- *
- * All write actions are dispatched through the existing /shard chat commands -
- * the server handles permissions there, so this GUI is "just a UI".
+ * Rendered as a centered panel (not full-screen). Left: scrollable cage list. Right: detail panel
+ * with rename field, co-owner add/list, a Start/Stop button. All write actions go through the
+ * existing /shard chat commands - the server enforces permissions, so this GUI is "just a UI".
  */
 public class GuiCageControl extends GuiScreen {
 
-    private static final int LIST_X = 10;
-    private static final int LIST_TOP = 50;
-    private static final int LIST_WIDTH = 250;
     private static final int ROW_H = 22;
+
+    // Centered panel geometry (computed in initGui).
+    private int panelX, panelY, panelW, panelH;
+    private int listX, listTop, listWidth, listH;
 
     private boolean adminView; // false = Mine, true = All
     private int scroll;
@@ -55,8 +53,8 @@ public class GuiCageControl extends GuiScreen {
         return mc == null || mc.thePlayer == null ? "" : mc.thePlayer.username;
     }
 
-    // Detail-panel anchor (computed from screen size in initGui).
-    private int detailX, detailY;
+    // Detail-panel anchor (computed from panel size in initGui).
+    private int detailX, detailY, detailW, detailH;
     private static final int DETAIL_PAD = 8;
     private static final int RENAME_FIELD_OFFSET_Y = 100;
     private static final int ADDCO_FIELD_OFFSET_Y  = 130;
@@ -64,13 +62,26 @@ public class GuiCageControl extends GuiScreen {
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
-        detailX = LIST_X + LIST_WIDTH + 14;
-        detailY = LIST_TOP;
+        panelW = 486;
+        panelH = Math.min(height - 20, 300);
+        panelX = (width - panelW) / 2;
+        panelY = (height - panelH) / 2;
+
+        listX = panelX + 8;
+        listTop = panelY + 48;
+        listWidth = 200;
+        listH = panelH - 56;
+
+        detailX = listX + listWidth + 10;
+        detailY = listTop;
+        detailW = panelX + panelW - 8 - detailX;
+        detailH = listH;
+
         renameField = new GuiTextField(fontRenderer,
-                detailX + 60, detailY + RENAME_FIELD_OFFSET_Y, 160, 18);
+                detailX + 55, detailY + RENAME_FIELD_OFFSET_Y, 150, 18);
         renameField.setMaxStringLength(24);
         coOwnerField = new GuiTextField(fontRenderer,
-                detailX + 90, detailY + ADDCO_FIELD_OFFSET_Y, 130, 18);
+                detailX + 85, detailY + ADDCO_FIELD_OFFSET_Y, 120, 18);
         coOwnerField.setMaxStringLength(16);
         // Request a fresh list on every open.
         sendListRequest();
@@ -126,10 +137,8 @@ public class GuiCageControl extends GuiScreen {
     private void runShard(String cmd) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.thePlayer != null) mc.thePlayer.sendChatMessage(cmd);
-        // The server-side command pipeline isn't routed to the chat hook here, so
-        // re-request the list shortly after so the UI catches up. The request goes
-        // over the same packet channel and is processed after the chat command on
-        // the server tick.
+        // Re-request the list shortly after; the request is processed after the chat command on the
+        // server tick, so the UI catches up.
         sendListRequest();
     }
 
@@ -175,12 +184,11 @@ public class GuiCageControl extends GuiScreen {
 
         // List row clicks.
         List<CageData> v = visibleCages();
-        int listH = height - LIST_TOP - 20;
         for (int i = 0; i < v.size(); i++) {
-            int rowY = LIST_TOP + i * ROW_H - scroll;
-            if (rowY < LIST_TOP) continue;
-            if (rowY + ROW_H > LIST_TOP + listH) continue;
-            if (mx >= LIST_X && mx < LIST_X + LIST_WIDTH && my >= rowY && my < rowY + ROW_H) {
+            int rowY = listTop + i * ROW_H - scroll;
+            if (rowY < listTop) continue;
+            if (rowY + ROW_H > listTop + listH) continue;
+            if (mx >= listX && mx < listX + listWidth && my >= rowY && my < rowY + ROW_H) {
                 selectedIdx = i;
                 CageData d = v.get(i);
                 renameField.setText(d.name == null ? "" : d.name);
@@ -194,11 +202,6 @@ public class GuiCageControl extends GuiScreen {
 
     // ----- actions -----
 
-    /**
-     * Build the cage identifier sent over chat. If the caller doesn't own the cage (i.e. an
-     * admin acting on someone else's), prefix with {@code owner:} so the server can resolve it
-     * unambiguously even if multiple players have a cage of the same name.
-     */
     private String idFor(CageData d) {
         String me = myUser();
         boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
@@ -245,34 +248,41 @@ public class GuiCageControl extends GuiScreen {
     @Override
     public void drawScreen(int mx, int my, float pt) {
         drawDefaultBackground();
-        drawCenteredString(fontRenderer, "§lCageControl", width / 2, 12, 0xFFFFFF);
+        // Panel background.
+        drawRect(panelX - 2, panelY - 2, panelX + panelW + 2, panelY + panelH + 2, 0xFF202020);
+        drawRect(panelX, panelY, panelX + panelW, panelY + panelH, 0xF00E0E0E);
+        drawRect(panelX, panelY, panelX + panelW, panelY + 20, 0xFF1A1A1A);
+
+        drawCenteredString(fontRenderer, "§lCageControl", panelX + panelW / 2, panelY + 6, 0xFFFFFF);
         int total = ClientPacketHandler.lastList == null ? 0 : ClientPacketHandler.lastList.size();
         drawCenteredString(fontRenderer,
                 "§7" + total + " cage" + (total == 1 ? "" : "s") + " known   "
                         + (ClientPacketHandler.lastIsAdmin ? "§a(admin)" : "§7(player view)"),
-                width / 2, 26, 0xCCCCCC);
+                panelX + panelW / 2, panelY + 24, 0xCCCCCC);
 
         btns.clear();
 
-        // View tabs (admin sees both; non-admin sees only "Mine" - just for clarity).
-        addBtn(LIST_X, 30, 80, 16, "Mine", !adminView ? 0xFF2E8B57 : 0xFF333333, new Runnable() {
+        // View tabs.
+        int tabY = panelY + 30;
+        addBtn(listX, tabY, 80, 16, "Mine", !adminView ? 0xFF2E8B57 : 0xFF333333, new Runnable() {
             @Override public void run() { adminView = false; selectedIdx = -1; scroll = 0; }
         });
         if (ClientPacketHandler.lastIsAdmin) {
-            addBtn(LIST_X + 84, 30, 80, 16, "All cages", adminView ? 0xFFB22222 : 0xFF333333, new Runnable() {
+            addBtn(listX + 84, tabY, 80, 16, "All cages", adminView ? 0xFFB22222 : 0xFF333333, new Runnable() {
                 @Override public void run() { adminView = true; selectedIdx = -1; scroll = 0; }
             });
         }
-        addBtn(LIST_X + LIST_WIDTH - 60, 30, 60, 16, "Refresh", 0xFF445566, new Runnable() {
+        addBtn(detailX + detailW - 60, tabY, 60, 16, "Refresh", 0xFF445566, new Runnable() {
             @Override public void run() { sendListRequest(); setStatus("Refreshing..."); }
         });
 
         drawCageList(mx, my);
         drawDetailPanel(mx, my);
 
-        // Status flash.
+        // Status flash (just below the panel).
         if (statusMsg != null && System.currentTimeMillis() < statusUntilMs) {
-            drawCenteredString(fontRenderer, "§e" + statusMsg, width / 2, height - 14, 0xFFFFAA00);
+            int sy = Math.min(panelY + panelH + 4, height - 10);
+            drawCenteredString(fontRenderer, "§e" + statusMsg, width / 2, sy, 0xFFFFAA00);
         }
 
         // Render buttons last so they overlay the list/detail backgrounds.
@@ -293,50 +303,49 @@ public class GuiCageControl extends GuiScreen {
     }
 
     private void drawCageList(int mx, int my) {
-        int listH = height - LIST_TOP - 20;
-        drawRect(LIST_X - 2, LIST_TOP - 2, LIST_X + LIST_WIDTH + 2, LIST_TOP + listH + 2, 0xFF202020);
-        drawRect(LIST_X, LIST_TOP, LIST_X + LIST_WIDTH, LIST_TOP + listH, 0xFF101418);
+        drawRect(listX - 2, listTop - 2, listX + listWidth + 2, listTop + listH + 2, 0xFF202020);
+        drawRect(listX, listTop, listX + listWidth, listTop + listH, 0xFF101418);
 
         List<CageData> v = visibleCages();
         if (v.isEmpty()) {
             drawCenteredString(fontRenderer, "§7(no cages to show)",
-                    LIST_X + LIST_WIDTH / 2, LIST_TOP + listH / 2 - 4, 0xFFAAAAAA);
+                    listX + listWidth / 2, listTop + listH / 2 - 4, 0xFFAAAAAA);
             return;
         }
         String me = myUser();
         for (int i = 0; i < v.size(); i++) {
-            int rowY = LIST_TOP + i * ROW_H - scroll;
-            if (rowY + ROW_H < LIST_TOP) continue;
-            if (rowY > LIST_TOP + listH) break;
+            int rowY = listTop + i * ROW_H - scroll;
+            if (rowY + ROW_H < listTop) continue;
+            if (rowY > listTop + listH) break;
             CageData d = v.get(i);
             int bg = (i == selectedIdx) ? 0xFF335577 : 0xFF1A1F26;
-            if (i != selectedIdx && mx >= LIST_X && mx < LIST_X + LIST_WIDTH && my >= rowY && my < rowY + ROW_H) {
+            if (i != selectedIdx && mx >= listX && mx < listX + listWidth && my >= rowY && my < rowY + ROW_H) {
                 bg = 0xFF273040; // hover
             }
-            drawRect(LIST_X + 2, rowY + 1, LIST_X + LIST_WIDTH - 2, rowY + ROW_H - 1, bg);
+            drawRect(listX + 2, rowY + 1, listX + listWidth - 2, rowY + ROW_H - 1, bg);
 
             // Status dot.
             int dotColor = d.active ? 0xFF40DD60 : 0xFFAA3333;
-            drawRect(LIST_X + 6, rowY + 4, LIST_X + 12, rowY + 10, dotColor);
+            drawRect(listX + 6, rowY + 4, listX + 12, rowY + 10, dotColor);
 
             // Name + mob.
             boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
             String prefix = mine ? "§b" : (d.coOwners.contains(me.toLowerCase()) ? "§d" : "§e");
             drawString(fontRenderer, prefix + d.name + "§r §7- " + d.mobType,
-                    LIST_X + 16, rowY + 3, 0xFFFFFF);
-            // Sub-line: owner + pos.
+                    listX + 16, rowY + 3, 0xFFFFFF);
+            // Sub-line: tier + pos + owner.
             drawString(fontRenderer,
                     "§8t" + d.tier + " §7dim" + d.dim + " §7@ " + d.x + "," + d.y + "," + d.z
                             + "  §8(" + (d.owner == null ? "?" : d.owner) + ")",
-                    LIST_X + 16, rowY + 12, 0xFFAAAAAA);
+                    listX + 16, rowY + 12, 0xFFAAAAAA);
         }
     }
 
     private void drawDetailPanel(int mx, int my) {
         int px = detailX;
         int py = detailY;
-        int pw = width - px - 10;
-        int ph = height - py - 20;
+        int pw = detailW;
+        int ph = detailH;
         drawRect(px - 2, py - 2, px + pw + 2, py + ph + 2, 0xFF202020);
         drawRect(px, py, px + pw, py + ph, 0xFF101418);
 
@@ -347,7 +356,7 @@ public class GuiCageControl extends GuiScreen {
             return;
         }
 
-        // --- Header (fixed offsets) ---
+        // --- Header ---
         drawString(fontRenderer, "§l" + d.name, px + DETAIL_PAD, py + 8, 0xFFFFFFFF);
         drawString(fontRenderer, "§7Owner: §e" + d.owner, px + DETAIL_PAD, py + 22, 0xFFAAAAAA);
         drawString(fontRenderer, "§7Mob: §f" + d.mobType + "  §7Tier: §f" + d.tier
@@ -363,37 +372,37 @@ public class GuiCageControl extends GuiScreen {
                 d.active ? 0xFFB22222 : 0xFF2E8B57,
                 new Runnable() { @Override public void run() { actionToggle(); } });
 
-        // --- Rename row (uses fixed-position renameField) ---
+        // --- Rename row ---
         drawString(fontRenderer, "§7Rename:", px + DETAIL_PAD, py + RENAME_FIELD_OFFSET_Y + 5, 0xFFAAAAAA);
         renameField.drawTextBox();
-        addBtn(px + DETAIL_PAD + 52 + 162 + 4, py + RENAME_FIELD_OFFSET_Y, 50, 18, "Apply", 0xFF445566,
+        addBtn(detailX + 55 + 150 + 4, py + RENAME_FIELD_OFFSET_Y, 44, 18, "Apply", 0xFF445566,
                 new Runnable() { @Override public void run() { actionRename(); } });
 
-        // --- Add co-owner row (uses fixed-position coOwnerField) ---
+        // --- Add co-owner row ---
         String me = myUser();
         boolean canAdd = (d.owner != null && d.owner.equalsIgnoreCase(me)) || ClientPacketHandler.lastIsAdmin;
         if (canAdd) {
-            drawString(fontRenderer, "§7Add co-owner:", px + DETAIL_PAD, py + ADDCO_FIELD_OFFSET_Y + 5, 0xFFAAAAAA);
+            drawString(fontRenderer, "§7Co-owner:", px + DETAIL_PAD, py + ADDCO_FIELD_OFFSET_Y + 5, 0xFFAAAAAA);
             coOwnerField.drawTextBox();
-            addBtn(px + DETAIL_PAD + 82 + 132 + 4, py + ADDCO_FIELD_OFFSET_Y, 40, 18, "Add", 0xFF2E8B57,
+            addBtn(detailX + 85 + 120 + 4, py + ADDCO_FIELD_OFFSET_Y, 40, 18, "Add", 0xFF2E8B57,
                     new Runnable() { @Override public void run() { actionAddCoOwner(); } });
         } else {
             drawString(fontRenderer, "§8(only the owner can manage co-owners)",
                     px + DETAIL_PAD, py + ADDCO_FIELD_OFFSET_Y + 5, 0xFF888888);
         }
 
-        // --- Co-owners list (below the input rows) ---
-        int cy = py + 160;
-        drawString(fontRenderer, "§7Co-owners:", px + DETAIL_PAD, cy, 0xFFAAAAAA); cy += 11;
+        // --- Co-owners list ---
+        int cy = py + 158;
+        drawString(fontRenderer, "§7Co-owners:", px + DETAIL_PAD, cy, 0xFFAAAAAA); cy += 12;
         if (d.coOwners.isEmpty()) {
             drawString(fontRenderer, "§8(none)", px + DETAIL_PAD + 6, cy, 0xFF888888);
         } else {
             int n = 0;
             for (final String co : d.coOwners) {
-                if (n >= 6) { drawString(fontRenderer, "§8...", px + DETAIL_PAD + 6, cy, 0xFF888888); break; }
-                drawString(fontRenderer, "§f" + co, px + DETAIL_PAD + 6, cy + 5, 0xFFFFFFFF);
+                if (n >= 4) { drawString(fontRenderer, "§8...", px + DETAIL_PAD + 6, cy, 0xFF888888); break; }
+                drawString(fontRenderer, "§f" + co, px + DETAIL_PAD + 6, cy + 4, 0xFFFFFFFF);
                 if (canAdd) {
-                    addBtn(px + DETAIL_PAD + 110, cy + 2, 60, 14, "Remove", 0xFFAA5555,
+                    addBtn(px + pw - 64, cy + 1, 56, 14, "Remove", 0xFFAA5555,
                             new Runnable() { @Override public void run() { actionRemoveCoOwner(co); } });
                 }
                 cy += 16;

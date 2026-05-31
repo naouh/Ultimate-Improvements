@@ -142,6 +142,18 @@ public class CommandShard extends CommandBase {
         TileEntity te = ws.getBlockTileEntity(d.x, d.y, d.z);
         if (!ReflectSS.isSoulCage(te)) { reply(epm, "Cage no longer exists at " + d.x + "," + d.y + "," + d.z + "."); reg.remove(d); return; }
 
+        // Anti-spam cooldown on start/stop (admins exempt).
+        if (("start".equals(action) || "stop".equals(action)) && !isAdmin) {
+            long now = System.currentTimeMillis();
+            long since = now - d.lastToggleMs;
+            if (since < CageControl.ACTION_COOLDOWN_MS) {
+                long wait = (CageControl.ACTION_COOLDOWN_MS - since + 999L) / 1000L;
+                reply(epm, RED + "Please wait " + wait + "s before toggling '" + d.name + "' again." + RESET);
+                return;
+            }
+            d.lastToggleMs = now;
+        }
+
         if ("start".equals(action)) {
             ReflectSS.setSignal(te, ws.isBlockGettingPowered(d.x, d.y, d.z) || ws.isBlockIndirectlyGettingPowered(d.x, d.y, d.z));
             ReflectSS.setMobType(te, d.mobType, d.special);

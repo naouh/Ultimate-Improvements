@@ -19,6 +19,8 @@ public class CageData {
     public boolean active;
     /** Additional players granted start/stop/list rights (lowercased). */
     public final Set<String> coOwners = new LinkedHashSet<String>();
+    /** In-memory only (not persisted): last time start/stop was toggled, for the anti-spam cooldown. */
+    public transient long lastToggleMs = 0L;
 
     public CageData() {}
 

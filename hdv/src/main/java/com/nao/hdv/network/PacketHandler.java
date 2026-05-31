@@ -48,6 +48,20 @@ public class PacketHandler implements IPacketHandler {
 
 	public static final int PAGE_SIZE = 10;
 
+	/** Anti-spam: minimum gap between list requests of the same kind, per player (DoS guard). */
+	private static final long MIN_LIST_INTERVAL_MS = 100L;
+	private static final java.util.Map<String, long[]> lastListReq = new java.util.HashMap<String, long[]>();
+
+	private static boolean allowListReq(String name, byte kind) {
+		long now = System.currentTimeMillis();
+		long[] ts = lastListReq.get(name);
+		if (ts == null) { ts = new long[2]; lastListReq.put(name, ts); }
+		int i = (kind == KIND_MINE) ? 1 : 0;
+		if (now - ts[i] < MIN_LIST_INTERVAL_MS) return false;
+		ts[i] = now;
+		return true;
+	}
+
 	@Override
 	public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player p) {
 		if (packet == null || packet.data == null) return;
@@ -67,7 +81,7 @@ public class PacketHandler implements IPacketHandler {
 				int page = in.readInt();
 				String search = in.readUTF();
 				byte kind = in.readByte();
-				sendList(epm, page, search, kind);
+				if (allowListReq(epm.username, kind)) sendList(epm, page, search, kind);
 			} else if (type == PKT_BUY) {
 				long id = in.readLong();
 				int qty = in.readInt();
@@ -116,6 +130,10 @@ public class PacketHandler implements IPacketHandler {
 		if (qty < 1) return;
 		if (qty > l.quantity) qty = l.quantity;
 		double total = qty * l.unitPrice;
+		if (Double.isNaN(total) || Double.isInfinite(total) || total < 0) {
+			msg(epm, "§cInvalid price on that listing.");
+			return;
+		}
 
 		if (!EssentialsEco.has(epm.username, total)) {
 			msg(epm, "§cNot enough money. You need " + EssentialsEco.format(total) + ".");
@@ -154,7 +172,7 @@ public class PacketHandler implements IPacketHandler {
 		if (qty < 1) { msg(epm, "§cQuantity must be at least 1."); return; }
 		if (qty > inSlot.stackSize) qty = inSlot.stackSize;
 
-		if (price < Config.minPrice || price > Config.maxPrice) {
+		if (Double.isNaN(price) || Double.isInfinite(price) || price < Config.minPrice || price > Config.maxPrice) {
 			msg(epm, "§cPrice must be between " + EssentialsEco.format(Config.minPrice)
 					+ " and " + EssentialsEco.format(Config.maxPrice) + ".");
 			return;
@@ -170,14 +188,19 @@ public class PacketHandler implements IPacketHandler {
 			msg(epm, "§cYou cannot afford the listing fee of " + EssentialsEco.format(fee) + ".");
 			return;
 		}
+
+		// Take the item from the real server-side inventory FIRST, then charge the fee; refund the
+		// item if the fee charge fails, so a failed payment can never consume the player's items.
+		ItemStack removed = epm.inventory.decrStackSize(slot, qty);
+		if (removed == null) { msg(epm, "§cCould not take the item."); return; }
+		epm.inventoryContainer.detectAndSendChanges();
+
 		if (fee > 0 && !EssentialsEco.withdraw(epm.username, fee)) {
+			epm.inventory.addItemStackToInventory(removed);
+			epm.inventoryContainer.detectAndSendChanges();
 			msg(epm, "§cFailed to charge the listing fee.");
 			return;
 		}
-
-		ItemStack removed = epm.inventory.decrStackSize(slot, qty);
-		epm.inventoryContainer.detectAndSendChanges();
-		if (removed == null) { msg(epm, "§cCould not take the item."); return; }
 
 		ItemStack unit = removed.copy();
 		unit.stackSize = 1;
