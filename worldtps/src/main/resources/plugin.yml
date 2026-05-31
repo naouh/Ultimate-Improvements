@@ -1,0 +1,15 @@
+name: WorldTPS
+main: com.nao.worldtps.WorldTpsPlugin
+version: ${version}
+author: Naouh
+description: Advanced /tps replacement - global TPS/MSPT plus per-world load breakdown.
+commands:
+  tps:
+    description: Show global TPS/MSPT and per-world load.
+    usage: /tps [world]
+    aliases: [lag, wtps]
+    permission: worldtps.use
+permissions:
+  worldtps.use:
+    description: Allows viewing TPS and per-world load.
+    default: true
