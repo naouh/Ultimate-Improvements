@@ -26,6 +26,14 @@ public class PacketHandler implements IPacketHandler {
     public static final byte PKT_OPEN_GUI       = 2; // S->C (open management GUI)
     public static final byte PKT_LIST_REQUEST   = 3; // C->S (admin flag in payload)
     public static final byte PKT_LIST_RESPONSE  = 4; // S->C (cage list)
+    public static final byte PKT_ACTION         = 5; // C->S (start/stop/rename/co-owner on a cage)
+
+    // Sub-actions carried by PKT_ACTION.
+    public static final byte ACT_START        = 0;
+    public static final byte ACT_STOP         = 1;
+    public static final byte ACT_RENAME       = 2;
+    public static final byte ACT_OWNER_ADD    = 3;
+    public static final byte ACT_OWNER_REMOVE = 4;
 
     @Override
     public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player p) {
@@ -43,6 +51,8 @@ public class PacketHandler implements IPacketHandler {
                     handleSetName(epm, x, y, z, name);
                 } else if (type == PKT_LIST_REQUEST) {
                     sendCageList(epm);
+                } else if (type == PKT_ACTION) {
+                    handleAction(epm, in);
                 }
             } else if (FMLCommonHandler.instance().getSide().isClient()) {
                 ClientPacketHandler.handle(type, in);
@@ -109,6 +119,46 @@ public class PacketHandler implements IPacketHandler {
 
     private static void msg(EntityPlayer p, String s) {
         p.sendChatToPlayer("[CageControl] " + s);
+    }
+
+    /**
+     * Handle a GUI action packet: start/stop/rename/co-owner on a cage identified by owner+name.
+     * The server (not Bukkit's command layer) enforces permissions here, so any owner or co-owner
+     * can drive their own cages without needing the {@code /shard} command node - which Cauldron
+     * denies to non-OPs.
+     */
+    private void handleAction(EntityPlayerMP epm, DataInputStream in) throws IOException {
+        byte action = in.readByte();
+        String owner = in.readUTF();
+        String name  = in.readUTF();
+        String arg   = in.readUTF();
+
+        boolean isAdmin = MinecraftServer.getServer().getConfigurationManager()
+                .areCommandsAllowed(epm.username);
+        CageRegistry reg = CageRegistry.get(epm.worldObj);
+        CageData d = reg.findByOwnerName(owner, name);
+        if (d == null) { msg(epm, "Cage not found: " + owner + ":" + name); return; }
+        if (!isAdmin && !d.canControl(epm.username)) {
+            msg(epm, "You are not an owner or co-owner of '" + d.name + "'.");
+            return;
+        }
+        // Rename and co-owner management are owner-only (admins override).
+        boolean ownerOnly = action == ACT_RENAME || action == ACT_OWNER_ADD || action == ACT_OWNER_REMOVE;
+        if (ownerOnly && !isAdmin && !d.isOwner(epm.username)) {
+            msg(epm, "Only the owner can do that.");
+            return;
+        }
+
+        String res;
+        switch (action) {
+            case ACT_START:        res = CageActions.start(epm, reg, d, isAdmin); break;
+            case ACT_STOP:         res = CageActions.stop(epm, reg, d, isAdmin); break;
+            case ACT_RENAME:       res = CageActions.rename(epm, reg, d, arg); break;
+            case ACT_OWNER_ADD:    res = CageActions.addCoOwner(epm, reg, d, arg); break;
+            case ACT_OWNER_REMOVE: res = CageActions.removeCoOwner(epm, reg, d, arg); break;
+            default: return;
+        }
+        if (res != null) msg(epm, res);
     }
 
     private void handleSetName(EntityPlayerMP epm, int x, int y, int z, String name) {

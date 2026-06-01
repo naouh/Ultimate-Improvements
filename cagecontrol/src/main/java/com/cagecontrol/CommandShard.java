@@ -120,59 +120,17 @@ public class CommandShard extends CommandBase {
         if ("rename".equals(action)) {
             if (args.length < 3) { reply(epm, "Usage: /shard <name> rename <new>"); return; }
             if (!d.isOwner(epm.username) && !isAdmin) { reply(epm, "Only the owner can rename."); return; }
-            String newName = args[2].trim();
-            if (!newName.matches("[A-Za-z0-9_\\-]{1,24}")) {
-                reply(epm, "Invalid name (A-Z 0-9 _ -, max 24 chars)."); return;
-            }
-            String old = d.name;
-            if (!reg.rename(d, newName)) {
-                reply(epm, "You already have a cage named '" + newName + "'.");
-            } else {
-                reply(epm, "Cage '" + AQUA + old + RESET + "' renamed to '" + AQUA + newName + RESET + "'.");
-                PacketHandler.sendCageList(epm);
-            }
+            reply(epm, CageActions.rename(epm, reg, d, args[2]));
             return;
         }
 
         if (args.length != 2) throw new WrongUsageException(getCommandUsage(sender));
 
-        WorldServer ws = findWorldByDim(d.dim);
-        if (ws == null) { reply(epm, "Dimension " + d.dim + " is not loaded."); return; }
-
-        TileEntity te = ws.getBlockTileEntity(d.x, d.y, d.z);
-        if (!ReflectSS.isSoulCage(te)) { reply(epm, "Cage no longer exists at " + d.x + "," + d.y + "," + d.z + "."); reg.remove(d); return; }
-
-        // Anti-spam cooldown on start/stop (admins exempt).
-        if (("start".equals(action) || "stop".equals(action)) && !isAdmin) {
-            long now = System.currentTimeMillis();
-            long since = now - d.lastToggleMs;
-            if (since < CageControl.ACTION_COOLDOWN_MS) {
-                long wait = (CageControl.ACTION_COOLDOWN_MS - since + 999L) / 1000L;
-                reply(epm, RED + "Please wait " + wait + "s before toggling '" + d.name + "' again." + RESET);
-                return;
-            }
-            d.lastToggleMs = now;
-        }
-
+        // start/stop share their logic with the GUI packet path via CageActions.
         if ("start".equals(action)) {
-            ReflectSS.setSignal(te, ws.isBlockGettingPowered(d.x, d.y, d.z) || ws.isBlockIndirectlyGettingPowered(d.x, d.y, d.z));
-            ReflectSS.setMobType(te, d.mobType, d.special);
-            ReflectSS.setTier(te, d.tier);          // restores delay
-            ReflectSS.rCount(te);
-            ws.markBlockForUpdate(d.x, d.y, d.z);
-            d.active = true;
-            reg.markDirty();
-            reply(epm, "Cage '" + AQUA + d.name + RESET + "' " + GREEN + "started" + RESET + ".");
-            PacketHandler.sendCageList(epm);
+            reply(epm, CageActions.start(epm, reg, d, isAdmin));
         } else if ("stop".equals(action)) {
-            // keep mobType so the spawner visual stays; just block spawning via delay = MAX
-            ReflectSS.disableSpawn(te);
-            ReflectSS.resetCount(te);
-            ws.markBlockForUpdate(d.x, d.y, d.z);
-            d.active = false;
-            reg.markDirty();
-            reply(epm, "Cage '" + AQUA + d.name + RESET + "' " + RED + "stopped" + RESET + ".");
-            PacketHandler.sendCageList(epm);
+            reply(epm, CageActions.stop(epm, reg, d, isAdmin));
         } else {
             throw new WrongUsageException(getCommandUsage(sender));
         }
@@ -210,22 +168,9 @@ public class CommandShard extends CommandBase {
         String target = args[3];
 
         if ("add".equals(sub)) {
-            if (d.isOwner(target)) { reply(epm, target + " is already the primary owner."); return; }
-            if (d.addCoOwner(target)) {
-                reg.markDirty();
-                reply(epm, GREEN + "Added " + target + " as co-owner of '" + d.name + "'." + RESET);
-                PacketHandler.sendCageList(epm);
-            } else {
-                reply(epm, target + " is already a co-owner.");
-            }
+            reply(epm, CageActions.addCoOwner(epm, reg, d, target));
         } else if ("remove".equals(sub) || "rm".equals(sub)) {
-            if (d.removeCoOwner(target)) {
-                reg.markDirty();
-                reply(epm, RED + "Removed " + target + " from co-owners of '" + d.name + "'." + RESET);
-                PacketHandler.sendCageList(epm);
-            } else {
-                reply(epm, target + " is not a co-owner.");
-            }
+            reply(epm, CageActions.removeCoOwner(epm, reg, d, target));
         } else {
             reply(epm, "Unknown subcommand: " + sub);
         }

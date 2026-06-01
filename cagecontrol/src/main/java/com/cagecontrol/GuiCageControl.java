@@ -134,12 +134,27 @@ public class GuiCageControl extends GuiScreen {
         PacketDispatcher.sendPacketToServer(pkt);
     }
 
-    private void runShard(String cmd) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc != null && mc.thePlayer != null) mc.thePlayer.sendChatMessage(cmd);
-        // Re-request the list shortly after; the request is processed after the chat command on the
-        // server tick, so the UI catches up.
-        sendListRequest();
+    /**
+     * Send a cage action to the server over our custom channel. This deliberately does NOT use the
+     * /shard chat command: on MCPC+/Cauldron the command node is denied to non-OPs, so owners and
+     * co-owners couldn't start their own cages. The server re-checks ownership and pushes a fresh
+     * list on success.
+     */
+    private void sendAction(byte action, CageData d, String arg) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        try {
+            dos.writeByte(PacketHandler.PKT_ACTION);
+            dos.writeByte(action);
+            dos.writeUTF(d.owner == null ? "" : d.owner);
+            dos.writeUTF(d.name == null ? "" : d.name);
+            dos.writeUTF(arg == null ? "" : arg);
+        } catch (IOException e) { return; }
+        Packet250CustomPayload pkt = new Packet250CustomPayload();
+        pkt.channel = CageControl.CHANNEL;
+        pkt.data = bos.toByteArray();
+        pkt.length = pkt.data.length;
+        PacketDispatcher.sendPacketToServer(pkt);
     }
 
     // ----- keyboard / mouse -----
@@ -202,20 +217,13 @@ public class GuiCageControl extends GuiScreen {
 
     // ----- actions -----
 
-    private String idFor(CageData d) {
-        String me = myUser();
-        boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
-        if (mine || d.owner == null || d.owner.isEmpty()) return d.name;
-        return d.owner + ":" + d.name;
-    }
-
     private void actionRename() {
         CageData d = selected();
         if (d == null) return;
         String n = renameField.getText().trim();
         if (n.length() == 0) return;
         if (n.equalsIgnoreCase(d.name)) return;
-        runShard("/shard " + idFor(d) + " rename " + n);
+        sendAction(PacketHandler.ACT_RENAME, d, n);
         setStatus("Rename sent: " + d.name + " -> " + n);
     }
 
@@ -224,7 +232,7 @@ public class GuiCageControl extends GuiScreen {
         if (d == null) return;
         String p = coOwnerField.getText().trim();
         if (p.length() < 2) { setStatus("Enter a player name."); return; }
-        runShard("/shard " + idFor(d) + " owner add " + p);
+        sendAction(PacketHandler.ACT_OWNER_ADD, d, p);
         coOwnerField.setText("");
         setStatus("Co-owner add sent: " + p);
     }
@@ -232,14 +240,14 @@ public class GuiCageControl extends GuiScreen {
     private void actionRemoveCoOwner(String co) {
         CageData d = selected();
         if (d == null) return;
-        runShard("/shard " + idFor(d) + " owner remove " + co);
+        sendAction(PacketHandler.ACT_OWNER_REMOVE, d, co);
         setStatus("Co-owner remove sent: " + co);
     }
 
     private void actionToggle() {
         CageData d = selected();
         if (d == null) return;
-        runShard("/shard " + idFor(d) + (d.active ? " stop" : " start"));
+        sendAction(d.active ? PacketHandler.ACT_STOP : PacketHandler.ACT_START, d, "");
         setStatus(d.active ? "Stop sent." : "Start sent.");
     }
 
@@ -322,22 +330,22 @@ public class GuiCageControl extends GuiScreen {
             if (i != selectedIdx && mx >= listX && mx < listX + listWidth && my >= rowY && my < rowY + ROW_H) {
                 bg = 0xFF273040; // hover
             }
-            drawRect(listX + 2, rowY + 1, listX + listWidth - 2, rowY + ROW_H - 1, bg);
+            drawRect(listX + 2, rowY + 2, listX + listWidth - 2, rowY + ROW_H - 2, bg);
 
-            // Status dot.
+            // Status dot (aligned with the name line).
             int dotColor = d.active ? 0xFF40DD60 : 0xFFAA3333;
-            drawRect(listX + 6, rowY + 4, listX + 12, rowY + 10, dotColor);
+            drawRect(listX + 6, rowY + 6, listX + 12, rowY + 12, dotColor);
 
             // Name + mob.
             boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
             String prefix = mine ? "§b" : (d.coOwners.contains(me.toLowerCase()) ? "§d" : "§e");
             drawString(fontRenderer, prefix + d.name + "§r §7- " + d.mobType,
-                    listX + 16, rowY + 3, 0xFFFFFF);
+                    listX + 16, rowY + 5, 0xFFFFFF);
             // Sub-line: tier + pos + owner.
             drawString(fontRenderer,
                     "§8t" + d.tier + " §7dim" + d.dim + " §7@ " + d.x + "," + d.y + "," + d.z
                             + "  §8(" + (d.owner == null ? "?" : d.owner) + ")",
-                    listX + 16, rowY + 12, 0xFFAAAAAA);
+                    listX + 16, rowY + 15, 0xFFAAAAAA);
         }
     }
 
