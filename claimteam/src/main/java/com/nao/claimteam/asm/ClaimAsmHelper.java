@@ -41,6 +41,9 @@ public final class ClaimAsmHelper {
     private static volatile Field   fEntityPosZ;
     private static volatile Field   fEntityWorld;
     private static volatile Field   fPlayerUsername;
+    private static volatile Field   fTileWorld;
+    private static volatile Field   fTileX;
+    private static volatile Field   fTileZ;
 
     private static Field find(Class<?> c, String... names) {
         for (Class<?> cur = c; cur != null && cur != Object.class; cur = cur.getSuperclass()) {
@@ -215,5 +218,61 @@ public final class ClaimAsmHelper {
     private static double safeDouble(Field f, Object o) {
         if (f == null || o == null) return 0.0;
         try { return f.getDouble(o); } catch (Throwable t) { return 0.0; }
+    }
+
+    // Facing (net.minecraft.util.Facing) side offsets for dir 0..5 = down,up,north,south,west,east.
+    private static final int[] OFF_X = { 0, 0, 0, 0, -1, 1 };
+    private static final int[] OFF_Z = { 0, 0, -1, 1, 0, 0 };
+
+    /**
+     * Entry hook for ComputerCraft turtles. Given the turtle's TileEntity and the action direction
+     * (0..5), returns whether the turtle may move/dig that way: blocked when it would cross a team
+     * boundary (so a turtle can't enter or dig into another team's claim) and allowed within its own
+     * claim or unclaimed land. No owner tracking needed — being unable to cross a boundary keeps the
+     * turtle in its own region. Fail-open on any error.
+     */
+    public static boolean turtleCanAct(Object tile, int dir) {
+        if (tile == null || dir < 0 || dir > 5) return true;
+        if (!Config.enableMachineTransformer) return true;
+        try {
+            if (fTileWorld == null) fTileWorld = find(tile.getClass(), "worldObj", "field_70331_b", "k");
+            Object world = safeGet(fTileWorld, tile);
+            if (world == null || isRemote(world)) return true;
+            if (fTileX == null) fTileX = find(tile.getClass(), "xCoord", "field_70329_l", "l");
+            if (fTileZ == null) fTileZ = find(tile.getClass(), "zCoord", "field_70327_n", "n");
+            int dim = dimensionOf(world);
+            int tx = safeInt(fTileX, tile);
+            int tz = safeInt(fTileZ, tile);
+            int nx = tx + OFF_X[dir];
+            int nz = tz + OFF_Z[dir];
+            return !ClaimQuery.shouldBlockTransition(dim, tx >> 4, tz >> 4, nx >> 4, nz >> 4);
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    /**
+     * Entry hook for block-breaking machines (BuildCraft Quarry, etc.). Given the machine's
+     * TileEntity and a target block, returns whether the machine may break it: allowed when the
+     * target chunk is unclaimed or belongs to the same team as the machine's own chunk, blocked
+     * when it belongs to a different team. {@code by} is unused (claims are 2D) but kept so the
+     * ASM call site can pass the target verbatim. Fail-open: any error returns true (allow).
+     */
+    public static boolean machineCanBreak(Object tile, int bx, int by, int bz) {
+        if (tile == null) return true;
+        if (!Config.enableMachineTransformer) return true;
+        try {
+            if (fTileWorld == null) fTileWorld = find(tile.getClass(), "worldObj", "field_70331_b", "k");
+            Object world = safeGet(fTileWorld, tile);
+            if (world == null || isRemote(world)) return true;
+            if (fTileX == null) fTileX = find(tile.getClass(), "xCoord", "field_70329_l", "l");
+            if (fTileZ == null) fTileZ = find(tile.getClass(), "zCoord", "field_70327_n", "n");
+            int dim = dimensionOf(world);
+            int qCx = safeInt(fTileX, tile) >> 4;
+            int qCz = safeInt(fTileZ, tile) >> 4;
+            return !ClaimQuery.shouldBlockTransition(dim, qCx, qCz, bx >> 4, bz >> 4);
+        } catch (Throwable t) {
+            return true;
+        }
     }
 }

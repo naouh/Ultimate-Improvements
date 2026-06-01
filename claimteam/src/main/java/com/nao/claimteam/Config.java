@@ -58,6 +58,7 @@ public final class Config {
     public static boolean enablePistonTransformer;
     public static boolean enableFluidTransformer;
     public static boolean enablePvpTransformer;
+    public static boolean enableMachineTransformer;
 
     /** group name (case-preserved) -> limits. Lookup is case-insensitive via {@link #limitsFor}. */
     public static final Map<String, GroupLimits> groupLimits = new HashMap<String, GroupLimits>();
@@ -146,6 +147,7 @@ public final class Config {
             enablePistonTransformer    = cfg.get("transformers", "piston",    true).getBoolean(true);
             enableFluidTransformer     = cfg.get("transformers", "fluid",     true).getBoolean(true);
             enablePvpTransformer       = cfg.get("transformers", "pvp",       true).getBoolean(true);
+            enableMachineTransformer   = cfg.get("transformers", "machine",   true).getBoolean(true);
 
             cfg.addCustomCategoryComment("gui",
                     "gridRadius = number of chunks shown around the player in each direction. " +

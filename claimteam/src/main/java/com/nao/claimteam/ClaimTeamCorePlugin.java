@@ -24,7 +24,9 @@ public class ClaimTeamCorePlugin implements IFMLLoadingPlugin {
             "com.nao.claimteam.asm.ExplosionTransformer",
             "com.nao.claimteam.asm.PistonTransformer",
             "com.nao.claimteam.asm.FluidTransformer",
-            "com.nao.claimteam.asm.PvpTransformer"
+            "com.nao.claimteam.asm.PvpTransformer",
+            "com.nao.claimteam.asm.QuarryTransformer",
+            "com.nao.claimteam.asm.TurtleTransformer"
         };
     }
 
