@@ -339,7 +339,7 @@ public class GuiCageControl extends GuiScreen {
             // Name + mob.
             boolean mine = d.owner != null && d.owner.equalsIgnoreCase(me);
             String prefix = mine ? "§b" : (d.coOwners.contains(me.toLowerCase()) ? "§d" : "§e");
-            drawString(fontRenderer, prefix + d.name + "§r §7- " + d.mobType,
+            drawString(fontRenderer, prefix + d.name + "§r §7- " + mobLabel(d),
                     listX + 16, rowY + 5, 0xFFFFFF);
             // Sub-line: tier + pos + owner.
             drawString(fontRenderer,
@@ -347,6 +347,19 @@ public class GuiCageControl extends GuiScreen {
                             + "  §8(" + (d.owner == null ? "?" : d.owner) + ")",
                     listX + 16, rowY + 15, 0xFFAAAAAA);
         }
+    }
+
+    /**
+     * Human-readable mob name. SoulShards stores wither skeletons and zombie villagers as the
+     * base entity type ("Skeleton" / "Zombie") plus a {@code special} flag, so the raw mobType
+     * reads "Skeleton" for a wither cage. Map those back to their proper names for display.
+     */
+    private static String mobLabel(CageData d) {
+        if (d.special) {
+            if ("Skeleton".equals(d.mobType)) return "Wither Skeleton";
+            if ("Zombie".equals(d.mobType))   return "Zombie Villager";
+        }
+        return d.mobType;
     }
 
     private void drawDetailPanel(int mx, int my) {
@@ -367,8 +380,8 @@ public class GuiCageControl extends GuiScreen {
         // --- Header ---
         drawString(fontRenderer, "§l" + d.name, px + DETAIL_PAD, py + 8, 0xFFFFFFFF);
         drawString(fontRenderer, "§7Owner: §e" + d.owner, px + DETAIL_PAD, py + 22, 0xFFAAAAAA);
-        drawString(fontRenderer, "§7Mob: §f" + d.mobType + "  §7Tier: §f" + d.tier
-                + (d.special ? "  §6special" : ""), px + DETAIL_PAD, py + 33, 0xFFAAAAAA);
+        drawString(fontRenderer, "§7Mob: §f" + mobLabel(d) + "  §7Tier: §f" + d.tier,
+                px + DETAIL_PAD, py + 33, 0xFFAAAAAA);
         drawString(fontRenderer, "§7Dim §f" + d.dim + " §7at §f" + d.x + "," + d.y + "," + d.z,
                 px + DETAIL_PAD, py + 44, 0xFFAAAAAA);
         drawString(fontRenderer, "§7Status: " + (d.active ? "§aSTARTED" : "§cSTOPPED"),

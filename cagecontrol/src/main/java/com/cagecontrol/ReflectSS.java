@@ -143,6 +143,12 @@ public class ReflectSS {
         try { return fTier.getInt(te); } catch (Throwable t) { return 0; }
     }
 
+    /** Reads the cage's {@code special} flag (true for the wither-skeleton variant). */
+    public static boolean getCageSpecial(TileEntity te) {
+        init();
+        try { return fSpecial.getBoolean(te); } catch (Throwable t) { return false; }
+    }
+
     public static void setSignal(TileEntity te, boolean signal) {
         try { fSignal.setBoolean(te, signal); } catch (Throwable t) {}
     }
