@@ -24,7 +24,7 @@ import org.lwjgl.input.Keyboard;
  */
 public class GuiCageControl extends GuiScreen {
 
-    private static final int ROW_H = 22;
+    private static final int ROW_H = 26;
 
     // Centered panel geometry (computed in initGui).
     private int panelX, panelY, panelW, panelH;

@@ -1,0 +1,18 @@
+name: ItemGuard
+main: com.nao.itemguard.ItemGuardPlugin
+version: ${version}
+author: Naouh
+description: Blacklist items by ID (no craft, no place) and cap how many of a block a player may place, per group.
+commands:
+  itemguard:
+    description: ItemGuard admin commands (reload, count).
+    usage: /itemguard <reload|count [player]>
+    aliases: [ig]
+    permission: itemguard.admin
+permissions:
+  itemguard.admin:
+    description: Use /itemguard (reload, count).
+    default: op
+  itemguard.bypass:
+    description: Ignore all blacklist and placement-limit checks.
+    default: op

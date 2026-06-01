@@ -1,0 +1,36 @@
+# ItemGuard configuration.
+#
+# Everything is keyed by item/block ID. Each key may be:
+#   - a bare ID      -> 243      matches that ID with ANY data value
+#   - an ID:data pair-> "243:1"  matches ONLY that subtype (data/damage value)
+# This works for both vanilla and modded items, so mods that pack many items onto a
+# single ID (Railcraft anchors, etc.) can be targeted precisely.
+#
+# IMPORTANT: an ID:data value MUST be quoted -> "243:1".
+#   Unquoted, YAML reads 243:1 as a base-60 number (243*60+1 = 14581), not "243 data 1".
+# IMPORTANT: YAML does not allow TAB characters for indentation - use spaces only.
+# Tip: hold the item in-game and run "/itemguard count" - it prints its ID:data.
+#
+# Players with the itemguard.bypass permission ignore every rule below.
+
+# --- Blacklist ---------------------------------------------------------------
+# Items in this list can NOT be crafted and can NOT be placed.
+blacklist:
+  # - 7          # bedrock (any data)
+  # - "243:1"    # only data value 1 of item 243
+
+# --- Placement limits --------------------------------------------------------
+# How many of a given block a single player may have placed in the world at once.
+# Breaking one of your own placed blocks frees a slot again.
+#
+# For each key:
+#   default     -> limit applied to everyone (use 0 to forbid placing by default)
+#   permissions -> per-permission overrides; the HIGHEST limit the player has wins.
+#
+# Assign the permission nodes to your groups (builder, donator, ...) in your
+# permissions plugin. Example below: chunk loader = 2 by default, 3 for donators.
+limits:
+  # 243:                       # Chunk Loader (any data value)
+  #   default: 2
+  #   permissions:
+  #     itemguard.limit.donator: 3

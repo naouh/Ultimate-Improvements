@@ -1,0 +1,15 @@
+[
+{
+"modid": "serverguide",
+"name": "Server Guide",
+"description": "In-game multi-page guide book: server rules, banned items, and a beginner's tutorial for the modpack. Open with the keybind (default G) or /guide. Content is editable in config/serverguide/. Built for MC 1.4.7.",
+"version": "0.1.0",
+"url": "",
+"authorList": ["Nao"],
+"credits": "",
+"logoFile": "",
+"screenshots": [],
+"dependencies": [],
+"mcversion": "1.4.7"
+}
+]
