@@ -260,6 +260,15 @@ public final class QuestBookGui extends GuiScreen {
 				cursorY += LINE_H;
 			}
 		}
+
+		if (selected.moneyReward > 0) {
+			cursorY += 2;
+			List<String> moneyLines = wrap("§7Reward: §a$" + selected.moneyReward, w - 12, fr);
+			for (int i = 0; i < moneyLines.size(); i++) {
+				drawString(fr, moneyLines.get(i), x + 6, cursorY, GuiPalette.TEXT_DIM);
+				cursorY += LINE_H;
+			}
+		}
 	}
 
 	/**

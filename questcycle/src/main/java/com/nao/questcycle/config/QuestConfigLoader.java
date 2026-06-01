@@ -139,8 +139,10 @@ public final class QuestConfigLoader {
 						titles.put(tid, title);
 					}
 				}
+				int money = Json.asInt(q.get("money"), 0);
+				if (money < 0) money = 0;
 				QuestDef def = new QuestDef(id, section, catId, catName, name, desc, iconId, iconMeta,
-						Collections.unmodifiableList(tasks), Collections.unmodifiableList(requires), title);
+						Collections.unmodifiableList(tasks), Collections.unmodifiableList(requires), title, money);
 				all.put(id, def);
 			}
 		}

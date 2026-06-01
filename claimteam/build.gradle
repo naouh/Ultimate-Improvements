@@ -59,3 +59,19 @@ task installToCoremods(type: Copy) {
 }
 installToCoremods.dependsOn remapJarForRelease
 build.finalizedBy installToCoremods
+
+task installToServerCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server coremods dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToServerCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToServerCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToServerCoremods

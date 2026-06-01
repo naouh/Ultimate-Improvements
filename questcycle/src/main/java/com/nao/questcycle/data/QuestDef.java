@@ -20,10 +20,12 @@ public final class QuestDef {
 	public final List<String> requires;
 	/** Non-null only for ACHIEVEMENT quests; the title granted on completion. */
 	public final TitleDef titleReward;
+	/** Money paid (via Essentials economy) the first time this quest is completed in a cycle. 0 = none. */
+	public final int moneyReward;
 
 	public QuestDef(String id, QuestSection section, String categoryId, String categoryName,
 	                String name, String desc, int iconItemId, int iconItemMeta,
-	                List<QuestTask> tasks, List<String> requires, TitleDef titleReward) {
+	                List<QuestTask> tasks, List<String> requires, TitleDef titleReward, int moneyReward) {
 		this.id = id;
 		this.section = section;
 		this.categoryId = categoryId;
@@ -35,5 +37,6 @@ public final class QuestDef {
 		this.tasks = Collections.unmodifiableList(tasks);
 		this.requires = Collections.unmodifiableList(requires);
 		this.titleReward = titleReward;
+		this.moneyReward = moneyReward;
 	}
 }

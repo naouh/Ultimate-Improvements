@@ -12,12 +12,15 @@ public class ClaimTeam {
     public String owner;
     public final Set<String> members = new LinkedHashSet<String>();
     public final Set<String> allies = new LinkedHashSet<String>();
+    /** Epoch millis of the last time any member was seen online. Drives idle chunk-load auto-disable. */
+    public long lastActiveMillis = System.currentTimeMillis();
 
     public ClaimTeam() {}
 
     public ClaimTeam(String name, String owner) {
         this.name = name;
         this.owner = owner == null ? null : owner.toLowerCase();
+        this.lastActiveMillis = System.currentTimeMillis();
     }
 
     public boolean isOwner(String player) {
@@ -59,6 +62,7 @@ public class ClaimTeam {
     public void writeTo(NBTTagCompound nbt) {
         nbt.setString("name", name);
         nbt.setString("owner", owner);
+        nbt.setLong("lastActive", lastActiveMillis);
         NBTTagList mList = new NBTTagList();
         for (String m : members) mList.appendTag(new NBTTagString("m", m));
         nbt.setTag("members", mList);
@@ -70,6 +74,7 @@ public class ClaimTeam {
     public void readFrom(NBTTagCompound nbt) {
         name = nbt.getString("name");
         owner = nbt.getString("owner");
+        lastActiveMillis = nbt.hasKey("lastActive") ? nbt.getLong("lastActive") : System.currentTimeMillis();
         members.clear();
         if (nbt.hasKey("members")) {
             NBTTagList list = nbt.getTagList("members");

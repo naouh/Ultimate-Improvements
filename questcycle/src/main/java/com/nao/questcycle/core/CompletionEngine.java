@@ -44,6 +44,15 @@ public final class CompletionEngine {
 				QuestPacketHandler.wrap(PacketBuilder.toast(headline, 0xFF22DD55)),
 				(Player) player);
 
+		// Pay the money reward (once per cycle, guarded by markCelebrated above). No-op when
+		// Essentials economy is absent.
+		if (q.moneyReward > 0 && com.nao.questcycle.eco.EssentialsEco.deposit(player.username, q.moneyReward)) {
+			PacketDispatcher.sendPacketToPlayer(
+					QuestPacketHandler.wrap(PacketBuilder.toast(
+							"§a+ " + com.nao.questcycle.eco.EssentialsEco.format(q.moneyReward), 0xFF55DD55)),
+					(Player) player);
+		}
+
 		if (q.section == QuestSection.ACHIEVEMENT) {
 			grantTitleIfAchievement(player, q, e.persist);
 		} else {

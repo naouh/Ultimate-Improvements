@@ -2,6 +2,7 @@ package com.nao.claimteam.action;
 
 import com.nao.claimteam.Config;
 import com.nao.claimteam.chunkload.ChunkLoadManager;
+import com.nao.claimteam.eco.EssentialsEco;
 import com.nao.claimteam.data.Claim;
 import com.nao.claimteam.data.ClaimRegistry;
 import com.nao.claimteam.data.ClaimTeam;
@@ -40,8 +41,23 @@ public final class ClaimActions {
             return "Claim limit reached (" + used + "/" + limits.maxClaims + ").";
         }
 
+        // Charge the per-chunk cost. Only when economy is configured AND Essentials is present;
+        // otherwise claims are free (single-player / non-economy servers still work). No refund on unclaim.
+        boolean charge = Config.chargeForClaims && Config.claimCost > 0 && EssentialsEco.isEnabled();
+        if (charge) {
+            if (!EssentialsEco.has(p.username, Config.claimCost)) {
+                return "You can't afford this claim (need " + EssentialsEco.format(Config.claimCost)
+                        + ", have " + EssentialsEco.format(EssentialsEco.balance(p.username)) + ").";
+            }
+            if (!EssentialsEco.withdraw(p.username, Config.claimCost)) {
+                return "Payment failed - claim cancelled. Try again.";
+            }
+        }
+
         reg.put(new Claim(cx, cz, dim, team.name, false));
-        return "Chunk (" + cx + "," + cz + ") claimed for team " + team.name + ".";
+        String msg = "Chunk (" + cx + "," + cz + ") claimed for team " + team.name + ".";
+        if (charge) msg += " Charged " + EssentialsEco.format(Config.claimCost) + ".";
+        return msg;
     }
 
     public static String unclaim(EntityPlayerMP p, World w, int cx, int cz) {

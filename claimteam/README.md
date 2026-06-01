@@ -11,7 +11,7 @@ Inspired by FTB Chunks + FTB Teams, adapted to the 1.4.7 modding constraints (no
 
 ## What it does
 
-- Claim chunks for your team — visual grid map (key `C` by default, rebindable in
+- Claim chunks for your team — visual grid map (key `J` by default, rebindable in
   Controls → `ClaimTeam Map`) and `/claim` / `/unclaim` commands.
 - Chunk-load any claim — right-click on the map, or `/chunkload`. Forced **always on**
   via `ForgeChunkManager` `NORMAL` tickets, even when no team member is online.
@@ -34,7 +34,7 @@ Forge profile. No external dependencies. Both client and server need the jar
 
 ### Map GUI
 
-Press the bound key (default `C`, rebindable in Controls — search for `ClaimTeam Map`):
+Press the bound key (default `J`, rebindable in Controls — search for `ClaimTeam Map`):
 
 - **Left-click** an unclaimed chunk to claim it for your team.
 - **Left-click** a chunk you own to unclaim it.
@@ -95,9 +95,29 @@ Per-group limits. Edit then `/claimadmin reload`:
     fluid=true
     pvp=true
 
+[economy]
+    chargeForClaims=true          # charge per claim when Essentials economy is present
+    claimCost=50.0                # money charged per chunk claimed; no refund on unclaim
+
+[chunkload]
+    idleDisableDays=7             # team offline this many days → its chunk-loads auto-disable (0 = never)
+
 [gui]
     gridRadius=6                  # half-width of the map grid (6 → 13x13 chunks shown)
 ```
+
+### Economy & idle chunk-loading
+
+- **Claim cost.** When `chargeForClaims` is on *and* Essentials economy is detected
+  (via the same Bukkit reflection bridge as GroupManager), each `/claim` (command or
+  map click) withdraws `claimCost` from the player. If they can't afford it the claim
+  is refused. **No refund** is given on unclaim. On a server without Essentials, claims
+  are free so single-player / vanilla-Forge still works.
+- **Idle auto-disable.** A server-side sweep runs every few minutes. Each team is stamped
+  "active" while any member is online; if a team has had **nobody** online for
+  `idleDisableDays` real days, all of its chunk-loads are turned off (the claims stay).
+  The team owner just has to log in and re-enable chunk-load on the chunks they want.
+  Persisted as `lastActive` per team in the world save.
 
 ## Status — what's tested vs what isn't
 

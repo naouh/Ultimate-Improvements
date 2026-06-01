@@ -47,6 +47,13 @@ public final class Config {
     public static boolean useGroupManager;
     public static int gridRadius;
 
+    /** If true and Essentials is present, charge {@link #claimCost} per chunk claim. */
+    public static boolean chargeForClaims;
+    /** Money charged per chunk claim when economy is enabled. */
+    public static double claimCost;
+    /** Days a team can have nobody online before its chunk-loads auto-disable. <=0 disables the feature. */
+    public static int idleDisableDays;
+
     public static boolean enableExplosionTransformer;
     public static boolean enablePistonTransformer;
     public static boolean enableFluidTransformer;
@@ -119,6 +126,19 @@ public final class Config {
                 if ("exampleAdmin".equals(user)) continue;
                 playerGroups.put(user.toLowerCase(), e.getValue().value);
             }
+
+            cfg.addCustomCategoryComment("economy",
+                    "chargeForClaims: if true and Essentials economy is present, claiming a chunk costs " +
+                    "claimCost. No refund is given on unclaim. If Essentials is absent, claims are free.");
+            chargeForClaims = cfg.get("economy", "chargeForClaims", true).getBoolean(true);
+            claimCost = cfg.get("economy", "claimCost", 50.0).getDouble(50.0);
+            if (claimCost < 0) claimCost = 0;
+
+            cfg.addCustomCategoryComment("chunkload",
+                    "idleDisableDays: if a team has no member online for this many real days, all of its " +
+                    "chunk-loads are automatically disabled (claims are kept). Set 0 to never auto-disable.");
+            idleDisableDays = cfg.get("chunkload", "idleDisableDays", 7).getInt();
+            if (idleDisableDays < 0) idleDisableDays = 0;
 
             cfg.addCustomCategoryComment("transformers",
                     "Kill switches per ASM transformer. Set false to disable. Requires restart.");

@@ -13,7 +13,7 @@ public class ClaimKeyHandler extends KeyHandler {
 
     // No colon in the description — 1.4.7's GameSettings.loadOptions splits saved lines on ':'
     // so any colon in the name breaks the round-trip and the key reverts to default on relaunch.
-    public static final KeyBinding OPEN_MAP = new KeyBinding("ClaimTeam Map", Keyboard.KEY_C);
+    public static final KeyBinding OPEN_MAP = new KeyBinding("ClaimTeam Map", Keyboard.KEY_J);
     private static boolean wasPressed = false;
 
     public ClaimKeyHandler() {
