@@ -1,0 +1,43 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" } // prebuilt voldeloom plugin
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4-SNAPSHOT"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11) //Last version able to set a --release as low as 6
+compileJava.options.release.set(6) //Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+volde {
+	runs {
+		client {
+			// dev username used by the run client task
+			programArg "FavouredDev"
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+
+	mappings volde.layered {
+		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+		modify("fz workaround3") {
+			for(String problem : ["ce", "cg", "cf"]) {
+				it.joined.methodMappingsByOwningClass.get(problem).removeAll {
+					it.value.name == "func_74427_a" //wakeThreads()V
+				}
+			}
+		}
+	}
+}

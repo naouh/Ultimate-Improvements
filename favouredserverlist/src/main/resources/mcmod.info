@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "favouredserverlist",
+    "name": "Favoured Server List",
+    "description": "Client-side: custom multiplayer server list with a bundled server icon and a multi-line, colored MOTD. Built for The Favoured Craft (1.4.7).",
+    "version": "1.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "authorList": ["Naouh"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
