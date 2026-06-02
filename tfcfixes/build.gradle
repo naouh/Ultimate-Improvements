@@ -1,0 +1,80 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.tfcfixes'
+archivesBaseName = 'tfcfixes'
+version = '1.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+}
+
+jar {
+	manifest {
+		attributes(
+			'FMLCorePlugin': 'com.nao.tfcfixes.TFCFixesCorePlugin',
+			'FMLCorePluginContainsFMLMod': 'false'
+		)
+	}
+}
+
+volde {
+}
+
+// Coremods load from /coremods, not /mods. Deploy to both client and server so worldgen
+// (server-side) and any client-side patches stay in sync. Missing targets fail the task
+// loudly so a typo in the path can't silently skip a deploy.
+task installToCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Coremods deploy dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToCoremods
+
+task installToServerCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server coremods dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToServerCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToServerCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToServerCoremods

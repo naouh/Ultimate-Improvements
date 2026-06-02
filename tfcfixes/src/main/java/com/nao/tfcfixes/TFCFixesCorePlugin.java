@@ -1,0 +1,45 @@
+package com.nao.tfcfixes;
+
+import java.util.Map;
+
+import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
+
+/**
+ * Coremod entry for TFCFixes — a bundle of small ASM bug fixes for the Ultimate Remastered
+ * (1.4.7) modpack.
+ *
+ * Each transformer listed here is independently fail-safe: if its target class/method isn't
+ * found at load time (different mod version, different obfuscation, mod absent) it logs and
+ * returns the original bytes, so the pack keeps running. To add a new fix, write a transformer
+ * under {@code com.nao.tfcfixes.asm} and append its fully-qualified name to the array below.
+ */
+public class TFCFixesCorePlugin implements IFMLLoadingPlugin {
+
+    @Override
+    public String[] getLibraryRequestClass() { return null; }
+
+    @Override
+    public String[] getASMTransformerClass() {
+        return new String[] {
+            // Mystcraft: silence writing-desk worldgen tile-entity spam.
+            "com.nao.tfcfixes.asm.WritingDeskTransformer",
+            // IC2 / AdvancedMachines / GregTech: ClassCastException fixes (merged from ic2netfix).
+            "com.nao.tfcfixes.asm.NetworkManagerTransformer",
+            "com.nao.tfcfixes.asm.BlockMultiIDTransformer",
+            "com.nao.tfcfixes.asm.GtMetaMachineItemTransformer",
+            // Post-teleport/login TileEntity sync race: window-items crash + ghost interaction
+            // (merged from windowitemsfix).
+            "com.nao.tfcfixes.asm.RightClickGuardTransformer",
+            "com.nao.tfcfixes.asm.ContainerTransformer"
+        };
+    }
+
+    @Override
+    public String getModContainerClass() { return null; }
+
+    @Override
+    public String getSetupClass() { return null; }
+
+    @Override
+    public void injectData(Map<String, Object> data) {}
+}
