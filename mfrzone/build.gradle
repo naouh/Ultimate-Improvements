@@ -1,0 +1,62 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.mfrzone'
+archivesBaseName = 'mfrzone'
+version = '1.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// MineFactory Reloaded and BuildCraft (for the laser-box preview) are both reached purely by
+	// reflection at runtime, so neither jar is needed on the compile classpath.
+}
+
+volde {
+}
+
+// Plain FML mod -> /mods on both sides. The server computes each machine's radius (the upgrade
+// only exists server-side) and pushes the box; the client draws the BuildCraft lasers.
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
+]
+
+task installToMods {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installToMods] SKIP (missing): ${dir}"
+			} else {
+				copy { from src; into dir }
+				println "[installToMods] Copied ${src.name} -> ${dir}"
+			}
+		}
+	}
+}
+build.finalizedBy installToMods

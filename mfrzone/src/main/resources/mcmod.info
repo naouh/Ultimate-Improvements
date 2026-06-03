@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "MFRZone",
+    "name": "MFR Zone Preview",
+    "description": "Visualises the working area of MineFactory Reloaded's Planter, Harvester and Fertilizer. Sneak + left-click an empty hand on the machine and its current radius (including the radius upgrade inside) lights up around it as a BuildCraft laser box for a few seconds. No GUI, no behaviour change - just see the range without counting blocks.",
+    "version": "1.0.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "updateUrl": "",
+    "authors": ["Nao"],
+    "credits": "",
+    "parent": "",
+    "screenshots": [],
+    "dependencies": ["MineFactoryReloaded"]
+  }
+]
