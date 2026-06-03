@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import com.nao.hdv.network.ItemCodec;
 import com.nao.hdv.network.PacketHandler;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.Packet250CustomPayload;
 
@@ -40,6 +41,23 @@ public final class ClientPacketHandler {
 			byte type = in.readByte();
 			if (type == PacketHandler.PKT_OPEN) {
 				openRequested = true;
+				return;
+			}
+			if (type == PacketHandler.PKT_NOTIFY) {
+				String before = in.readUTF();
+				ItemStack unit = ItemCodec.read(in);
+				String after = in.readUTF();
+				String name = "?";
+				try {
+					if (unit != null) {
+						String dn = unit.getDisplayName();
+						if (dn != null && dn.length() > 0) name = dn;
+					}
+				} catch (Throwable ignored) {}
+				Minecraft mc = Minecraft.getMinecraft();
+				if (mc != null && mc.thePlayer != null) {
+					mc.thePlayer.addChatMessage("§6[HDV]§r " + before + name + after);
+				}
 				return;
 			}
 			if (type == PacketHandler.PKT_LIST) {

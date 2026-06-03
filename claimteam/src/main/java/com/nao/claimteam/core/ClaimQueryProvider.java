@@ -77,24 +77,24 @@ public final class ClaimQueryProvider implements ClaimQuery.Provider {
         return null;
     }
 
-    /** Convenience: does {@code player} have build permission in this chunk? */
+    /**
+     * Does {@code player} have build permission in this chunk? Members AND allies are allowed:
+     * allies are treated as full team members (break, place, interact). Allies are matched
+     * per individual player name only — allying a player does not extend to their teammates.
+     */
     public static boolean canBuild(EntityPlayer player, World world, int cx, int cz) {
-        if (player == null || world == null) return false;
-        int dim = world.provider.dimensionId;
-        ClaimRegistry creg = ClaimRegistry.get(world);
-        Claim c = creg.find(dim, cx, cz);
-        if (c == null) return true;
-        ClaimTeam t = TeamRegistry.get(world).getByName(c.teamName);
-        if (t == null) return true;
-        return t.isMember(player.username);
+        return canAccess(player, world, cx, cz);
     }
 
-    /** Same as {@link #canBuild} but for interactions (containers, levers). Allies allowed. */
+    /** Same access as {@link #canBuild} — kept as a separate name for the interact call-site. */
     public static boolean canInteract(EntityPlayer player, World world, int cx, int cz) {
+        return canAccess(player, world, cx, cz);
+    }
+
+    private static boolean canAccess(EntityPlayer player, World world, int cx, int cz) {
         if (player == null || world == null) return false;
         int dim = world.provider.dimensionId;
-        ClaimRegistry creg = ClaimRegistry.get(world);
-        Claim c = creg.find(dim, cx, cz);
+        Claim c = ClaimRegistry.get(world).find(dim, cx, cz);
         if (c == null) return true;
         ClaimTeam t = TeamRegistry.get(world).getByName(c.teamName);
         if (t == null) return true;

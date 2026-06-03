@@ -10,8 +10,10 @@ import cpw.mods.fml.common.network.PacketDispatcher;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Management GUI opened via {@code /cagecontrol}. Two views:
@@ -178,8 +180,16 @@ public class GuiCageControl extends GuiScreen {
         int wheel = org.lwjgl.input.Mouse.getEventDWheel();
         if (wheel != 0) {
             scroll += (wheel > 0 ? -1 : 1) * ROW_H;
-            if (scroll < 0) scroll = 0;
+            clampScroll();
         }
+    }
+
+    /** Keep scroll within [0, maxScroll] so the list can't be dragged past its content. */
+    private void clampScroll() {
+        int contentH = visibleCages().size() * ROW_H;
+        int maxScroll = Math.max(0, contentH - listH);
+        if (scroll > maxScroll) scroll = maxScroll;
+        if (scroll < 0) scroll = 0;
     }
 
     @Override
@@ -320,6 +330,9 @@ public class GuiCageControl extends GuiScreen {
                     listX + listWidth / 2, listTop + listH / 2 - 4, 0xFFAAAAAA);
             return;
         }
+        // Clip rows to the list viewport: a partially-scrolled top/bottom row must not bleed
+        // over the tabs/header. Row-level culling alone draws partial rows in full.
+        beginClip(listX, listTop, listWidth, listH);
         String me = myUser();
         for (int i = 0; i < v.size(); i++) {
             int rowY = listTop + i * ROW_H - scroll;
@@ -347,6 +360,21 @@ public class GuiCageControl extends GuiScreen {
                             + "  §8(" + (d.owner == null ? "?" : d.owner) + ")",
                     listX + 16, rowY + 15, 0xFFAAAAAA);
         }
+        endClip();
+    }
+
+    /** Enable an OpenGL scissor clip to the given GUI-space rect (top-left origin). */
+    private void beginClip(int x, int y, int w, int h) {
+        Minecraft mc = Minecraft.getMinecraft();
+        ScaledResolution sr = new ScaledResolution(mc.gameSettings, mc.displayWidth, mc.displayHeight);
+        int scale = sr.getScaleFactor();
+        // glScissor is in pixel coords with origin at bottom-left.
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(x * scale, (height - (y + h)) * scale, w * scale, h * scale);
+    }
+
+    private void endClip() {
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
     /**

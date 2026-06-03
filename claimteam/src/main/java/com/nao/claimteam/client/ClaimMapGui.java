@@ -57,6 +57,8 @@ public class ClaimMapGui extends GuiScreen {
     private static final byte MODE_PICK_PROMOTE     = 4;
     private static final byte MODE_CONFIRM_DISBAND  = 5;
     private static final byte MODE_CONFIRM_LEAVE    = 6;
+    private static final byte MODE_INPUT_ALLY       = 7;
+    private static final byte MODE_PICK_UNALLY      = 8;
 
     private byte teamMode = MODE_NONE;
     private GuiTextField teamInput;
@@ -105,6 +107,8 @@ public class ClaimMapGui extends GuiScreen {
             addBtn(panelX, y, btnW, btnH, "Invite player", 0xFF2E8B57, MODE_INPUT_INVITE, null);    y += btnH + gap;
             addBtn(panelX, y, btnW, btnH, "Kick member",   0xFFAA5555, MODE_PICK_KICK,    null);    y += btnH + gap;
             addBtn(panelX, y, btnW, btnH, "Promote member",0xFFAA8833, MODE_PICK_PROMOTE, null);    y += btnH + gap;
+            addBtn(panelX, y, btnW, btnH, "Add ally",      0xFF2E5FB8, MODE_INPUT_ALLY,   null);    y += btnH + gap;
+            addBtn(panelX, y, btnW, btnH, "Remove ally",   0xFF3A6098, MODE_PICK_UNALLY,  null);    y += btnH + gap;
             addBtn(panelX, y, btnW, btnH, "Disband team",  0xFFB22222, MODE_CONFIRM_DISBAND, null); y += btnH + gap;
         } else {
             addBtn(panelX, y, btnW, btnH, "Leave team",    0xFFAA5555, MODE_CONFIRM_LEAVE, null);   y += btnH + gap;
@@ -122,8 +126,8 @@ public class ClaimMapGui extends GuiScreen {
     private void openModal(byte action, String arg) {
         teamMode = action;
         teamInputError = null;
-        if (action == MODE_INPUT_CREATE || action == MODE_INPUT_INVITE
-                || action == MODE_PICK_KICK || action == MODE_PICK_PROMOTE) {
+        if (action == MODE_INPUT_CREATE || action == MODE_INPUT_INVITE || action == MODE_INPUT_ALLY
+                || action == MODE_PICK_KICK || action == MODE_PICK_PROMOTE || action == MODE_PICK_UNALLY) {
             // Position the text field where drawModal will draw the panel so they line up.
             int pw = 260;
             int px = (width - pw) / 2;
@@ -142,14 +146,39 @@ public class ClaimMapGui extends GuiScreen {
 
     /** Panel height for the given modal mode. */
     private int modalPanelHeight(byte mode) {
-        if (mode == MODE_PICK_KICK || mode == MODE_PICK_PROMOTE) return 170;
-        if (mode == MODE_INPUT_CREATE || mode == MODE_INPUT_INVITE) return 110;
+        if (mode == MODE_PICK_KICK || mode == MODE_PICK_PROMOTE || mode == MODE_PICK_UNALLY) return 170;
+        if (mode == MODE_INPUT_CREATE || mode == MODE_INPUT_INVITE || mode == MODE_INPUT_ALLY) return 110;
         return 90; // confirm dialogs
+    }
+
+    /** True while a member/ally picker modal is open (kick, promote, or remove-ally). */
+    private boolean isPickerMode() {
+        return teamMode == MODE_PICK_KICK || teamMode == MODE_PICK_PROMOTE || teamMode == MODE_PICK_UNALLY;
+    }
+
+    /** The list backing the current picker modal: allies for remove-ally, members otherwise. */
+    private String[] pickerList() {
+        return teamMode == MODE_PICK_UNALLY ? ClientPacketHandler.myTeamAllies
+                                            : ClientPacketHandler.myTeamMembers;
     }
 
     private int modalPanelY(byte mode) {
         int ph = modalPanelHeight(mode);
         return (height - ph) / 2;
+    }
+
+    /**
+     * Screen rect {x, y, w, h} of picker-chip {@code i} in the kick/promote/remove-ally picker.
+     * Shared by {@link #drawModal} and {@link #handleModalClick} so the drawn chips and
+     * their click hit-boxes stay aligned (they used to drift apart and swallow clicks).
+     */
+    private int[] pickerChipRect(int i) {
+        int cw = 110, ch = 14, gap = 4;
+        int cx = width / 2 - cw - gap / 2;
+        int cy = modalPanelY(teamMode) + 70;
+        int row = i / 2;
+        int col = i % 2;
+        return new int[] { cx + col * (cw + gap), cy + row * (ch + gap), cw, ch };
     }
 
     private void closeModal() {
@@ -159,15 +188,19 @@ public class ClaimMapGui extends GuiScreen {
     }
 
     /**
-     * Send a chat command to the server. The server already handles /team logic
-     * and pushes a fresh grid/team_info packet back to us via TeamCommand's
-     * sendUpdate hook, so we don't need to re-request anything from here.
+     * Send a team-management action to the server over the mod's own packet channel.
+     * We deliberately do NOT dispatch a {@code /team} chat command: on Bukkit/MCPC+ servers
+     * the Forge command is gated behind a permission node most players lack, so the GUI would
+     * silently fail for them. The server applies its own ownership checks in TeamActions and
+     * pushes a fresh grid/team_info packet back, so we don't need to re-request anything here.
      */
-    private void runTeamCommand(String cmd) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.sendChatMessage(cmd);
-        }
+    private void sendTeamCmd(byte sub, String arg) {
+        byte[] data = PacketHandler.buildTeamCmd(sub, arg == null ? "" : arg);
+        Packet250CustomPayload pkt = new Packet250CustomPayload();
+        pkt.channel = ClaimTeamMod.CHANNEL;
+        pkt.data = data;
+        pkt.length = data.length;
+        PacketDispatcher.sendPacketToServer(pkt);
     }
 
     private void confirmModal() {
@@ -175,39 +208,53 @@ public class ClaimMapGui extends GuiScreen {
             case MODE_INPUT_CREATE: {
                 String name = teamInput == null ? "" : teamInput.getText().trim();
                 if (!name.matches("[A-Za-z0-9_\\-]{3,16}")) { teamInputError = "Name: 3-16 chars A-Z 0-9 _ -"; return; }
-                runTeamCommand("/team create " + name);
+                sendTeamCmd(PacketHandler.TEAM_CREATE, name);
                 closeModal();
                 return;
             }
             case MODE_INPUT_INVITE: {
                 String n = teamInput == null ? "" : teamInput.getText().trim();
                 if (n.length() < 2) { teamInputError = "Enter a player name."; return; }
-                runTeamCommand("/team invite " + n);
+                sendTeamCmd(PacketHandler.TEAM_INVITE, n);
                 closeModal();
                 return;
             }
             case MODE_PICK_KICK: {
                 String n = teamInput == null ? "" : teamInput.getText().trim();
                 if (n.length() < 2) { teamInputError = "Pick or type a member name."; return; }
-                runTeamCommand("/team kick " + n);
+                sendTeamCmd(PacketHandler.TEAM_KICK, n);
                 closeModal();
                 return;
             }
             case MODE_PICK_PROMOTE: {
                 String n = teamInput == null ? "" : teamInput.getText().trim();
                 if (n.length() < 2) { teamInputError = "Pick or type a member name."; return; }
-                runTeamCommand("/team promote " + n);
+                sendTeamCmd(PacketHandler.TEAM_PROMOTE, n);
+                closeModal();
+                return;
+            }
+            case MODE_INPUT_ALLY: {
+                String n = teamInput == null ? "" : teamInput.getText().trim();
+                if (n.length() < 2) { teamInputError = "Enter a player or team-owner name."; return; }
+                sendTeamCmd(PacketHandler.TEAM_ALLY, n);
+                closeModal();
+                return;
+            }
+            case MODE_PICK_UNALLY: {
+                String n = teamInput == null ? "" : teamInput.getText().trim();
+                if (n.length() < 2) { teamInputError = "Pick or type an ally name."; return; }
+                sendTeamCmd(PacketHandler.TEAM_UNALLY, n);
                 closeModal();
                 return;
             }
             case MODE_CONFIRM_DISBAND:
-                runTeamCommand("/team disband");
+                sendTeamCmd(PacketHandler.TEAM_DISBAND, "");
                 closeModal();
                 // No team anymore -> close the map; user can re-open later.
                 mc.displayGuiScreen(null);
                 return;
             case MODE_CONFIRM_LEAVE:
-                runTeamCommand("/team leave");
+                sendTeamCmd(PacketHandler.TEAM_LEAVE, "");
                 closeModal();
                 mc.displayGuiScreen(null);
                 return;
@@ -603,22 +650,14 @@ public class ClaimMapGui extends GuiScreen {
         if (btn != 0) return;
         // Text input click (focus).
         if (teamInput != null) teamInput.mouseClicked(mx, my, btn);
-        // Member chip click (Kick / Promote modes) - autofills the text field.
-        if (teamMode == MODE_PICK_KICK || teamMode == MODE_PICK_PROMOTE) {
-            String[] mem = ClientPacketHandler.myTeamMembers;
-            if (mem != null) {
-                int cx = width / 2 - 100;
-                int cy = height / 2 + 18;
-                int cw = 96;
-                int ch = 14;
-                int gap = 4;
-                for (int i = 0; i < mem.length && i < 8; i++) {
-                    int row = i / 2;
-                    int col = i % 2;
-                    int x = cx + col * (cw + gap);
-                    int y = cy + row * (ch + gap);
-                    if (mx >= x && mx < x + cw && my >= y && my < y + ch) {
-                        if (teamInput != null) { teamInput.setText(mem[i]); teamInput.setFocused(true); }
+        // Chip click (Kick / Promote / Remove-ally pickers) - autofills the text field.
+        if (isPickerMode()) {
+            String[] list = pickerList();
+            if (list != null) {
+                for (int i = 0; i < list.length && i < 8; i++) {
+                    int[] r = pickerChipRect(i);
+                    if (mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3]) {
+                        if (teamInput != null) { teamInput.setText(list[i]); teamInput.setFocused(true); }
                         return;
                     }
                 }
@@ -668,6 +707,8 @@ public class ClaimMapGui extends GuiScreen {
             case MODE_INPUT_INVITE:    title = "Invite player"; break;
             case MODE_PICK_KICK:       title = "Kick member"; break;
             case MODE_PICK_PROMOTE:    title = "Promote member to owner"; break;
+            case MODE_INPUT_ALLY:      title = "Add ally"; break;
+            case MODE_PICK_UNALLY:     title = "Remove ally"; break;
             case MODE_CONFIRM_DISBAND: title = "Disband team?"; break;
             case MODE_CONFIRM_LEAVE:   title = "Leave team?"; break;
             default:                   title = "";
@@ -686,26 +727,19 @@ public class ClaimMapGui extends GuiScreen {
                     width / 2, py + 36, 0xFFAAAAAA);
         }
 
-        // Member chips for kick/promote pickers. Drawn below the input field.
-        if (teamMode == MODE_PICK_KICK || teamMode == MODE_PICK_PROMOTE) {
+        // Chips for kick/promote/remove-ally pickers. Drawn below the input field.
+        if (isPickerMode()) {
             drawCenteredString(fontRenderer, "§7Click a name to fill, or type it.",
                     width / 2, py + 56, 0xFFAAAAAA);
-            String[] mem = ClientPacketHandler.myTeamMembers;
-            int cy = py + 70;
-            int cw = 110;
-            int ch = 14;
-            int gap = 4;
-            int cx = width / 2 - cw - gap / 2;
-            if (mem == null || mem.length == 0) {
-                drawCenteredString(fontRenderer, "§8(no members)", width / 2, cy + 4, 0xFF888888);
+            String[] list = pickerList();
+            if (list == null || list.length == 0) {
+                String empty = teamMode == MODE_PICK_UNALLY ? "§8(no allies)" : "§8(no members)";
+                drawCenteredString(fontRenderer, empty, width / 2, py + 74, 0xFF888888);
             } else {
-                for (int i = 0; i < mem.length && i < 8; i++) {
-                    int row = i / 2;
-                    int col = i % 2;
-                    int x = cx + col * (cw + gap);
-                    int y = cy + row * (ch + gap);
-                    drawRect(x, y, x + cw, y + ch, 0xFF2A3A4A);
-                    drawCenteredString(fontRenderer, mem[i], x + cw / 2, y + 3, 0xFFCCDDEE);
+                for (int i = 0; i < list.length && i < 8; i++) {
+                    int[] r = pickerChipRect(i);
+                    drawRect(r[0], r[1], r[0] + r[2], r[1] + r[3], 0xFF2A3A4A);
+                    drawCenteredString(fontRenderer, list[i], r[0] + r[2] / 2, r[1] + 3, 0xFFCCDDEE);
                 }
             }
         }

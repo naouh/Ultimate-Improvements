@@ -9,6 +9,7 @@ import java.io.IOException;
 import com.nao.claimteam.ClaimTeamMod;
 import com.nao.claimteam.Config;
 import com.nao.claimteam.action.ClaimActions;
+import com.nao.claimteam.action.TeamActions;
 import com.nao.claimteam.client.ClientPacketHandler;
 import com.nao.claimteam.data.Claim;
 import com.nao.claimteam.data.ClaimRegistry;
@@ -36,10 +37,22 @@ public class PacketHandler implements IPacketHandler {
     public static final byte PKT_GRID_RESPONSE = 2;  // S->C
     public static final byte PKT_ACTION       = 3;   // C->S
     public static final byte PKT_TEAM_INFO    = 4;   // S->C
+    public static final byte PKT_TEAM_CMD     = 5;   // C->S  (team management from the map GUI)
 
     public static final byte ACTION_CLAIM      = 1;
     public static final byte ACTION_UNCLAIM    = 2;
     public static final byte ACTION_TOGGLE_CL  = 3;
+
+    // Sub-actions carried by PKT_TEAM_CMD. These mirror the /team subcommands but run through
+    // the mod's own packet channel, so players don't need permission to run the Forge command.
+    public static final byte TEAM_CREATE   = 1;
+    public static final byte TEAM_INVITE   = 2;
+    public static final byte TEAM_KICK     = 3;
+    public static final byte TEAM_PROMOTE  = 4;
+    public static final byte TEAM_LEAVE    = 5;
+    public static final byte TEAM_DISBAND  = 6;
+    public static final byte TEAM_ALLY     = 7;
+    public static final byte TEAM_UNALLY   = 8;
 
     public static final byte CELL_UNCLAIMED       = 0;
     public static final byte CELL_OWN             = 1;
@@ -76,9 +89,28 @@ public class PacketHandler implements IPacketHandler {
                 int cx = in.readInt();
                 int cz = in.readInt();
                 handleAction(epm, action, cx, cz);
+            } else if (type == PKT_TEAM_CMD) {
+                byte sub = in.readByte();
+                String arg = in.readUTF();
+                handleTeamCmd(epm, sub, arg);
             }
         } catch (Throwable t) {
             t.printStackTrace();
+        }
+    }
+
+    private static void handleTeamCmd(EntityPlayerMP epm, byte sub, String arg) {
+        if (arg != null) arg = arg.trim();
+        switch (sub) {
+            case TEAM_CREATE:  TeamActions.create(epm, arg);  break;
+            case TEAM_INVITE:  TeamActions.invite(epm, arg);  break;
+            case TEAM_KICK:    TeamActions.kick(epm, arg);    break;
+            case TEAM_PROMOTE: TeamActions.promote(epm, arg); break;
+            case TEAM_LEAVE:   TeamActions.leave(epm);        break;
+            case TEAM_DISBAND: TeamActions.disband(epm);      break;
+            case TEAM_ALLY:    TeamActions.ally(epm, arg);    break;
+            case TEAM_UNALLY:  TeamActions.unally(epm, arg);  break;
+            default: break;
         }
     }
 
@@ -125,8 +157,10 @@ public class PacketHandler implements IPacketHandler {
                         ClaimTeam claimTeam = treg.getByName(c.teamName);
                         boolean mine = myTeam != null && myTeam.name != null && c.teamName != null
                                        && myTeam.name.equalsIgnoreCase(c.teamName);
-                        boolean ally = !mine && myTeam != null && claimTeam != null
-                                       && claimTeam.isAlly(myTeam.owner);
+                        // Allies are per-player: this chunk's team must have allied THIS viewer
+                        // by name (not their team), matching the per-player build permission.
+                        boolean ally = !mine && claimTeam != null
+                                       && claimTeam.isAlly(epm.username);
                         byte cell;
                         if (mine)        cell = c.chunkload ? CELL_OWN_CHUNKLOAD : CELL_OWN;
                         else if (ally)   cell = CELL_ALLY;
@@ -151,6 +185,13 @@ public class PacketHandler implements IPacketHandler {
             } else {
                 dos.writeInt(myTeam.members.size());
                 for (String m : myTeam.members) dos.writeUTF(m);
+            }
+            // Ally list for the team UI (owner-managed; drives the "Remove ally" picker).
+            if (myTeam == null) {
+                dos.writeInt(0);
+            } else {
+                dos.writeInt(myTeam.allies.size());
+                for (String a : myTeam.allies) dos.writeUTF(a);
             }
         } catch (IOException e) {
             return;
@@ -179,9 +220,12 @@ public class PacketHandler implements IPacketHandler {
             dos.writeInt(usedCL);
             dos.writeInt(limits.maxChunkloads);
             if (t == null) {
-                // No member list to ship.
+                // No member / ally lists to ship.
+                dos.writeInt(0);
             } else {
                 for (String m : t.members) dos.writeUTF(m);
+                dos.writeInt(t.allies.size());
+                for (String a : t.allies) dos.writeUTF(a);
             }
         } catch (IOException e) {
             return;
@@ -218,6 +262,18 @@ public class PacketHandler implements IPacketHandler {
             dos.writeByte(action);
             dos.writeInt(cx);
             dos.writeInt(cz);
+        } catch (IOException ignored) {}
+        return bos.toByteArray();
+    }
+
+    /** Convenience for client side: build a team-management command packet. */
+    public static byte[] buildTeamCmd(byte sub, String arg) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        try {
+            dos.writeByte(PKT_TEAM_CMD);
+            dos.writeByte(sub);
+            dos.writeUTF(arg == null ? "" : arg);
         } catch (IOException ignored) {}
         return bos.toByteArray();
     }

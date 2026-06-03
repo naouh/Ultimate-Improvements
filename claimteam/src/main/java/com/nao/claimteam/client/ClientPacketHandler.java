@@ -26,6 +26,7 @@ public final class ClientPacketHandler {
     public static volatile String myTeam = "";
     public static volatile String myTeamOwner = "";
     public static volatile String[] myTeamMembers = new String[0];
+    public static volatile String[] myTeamAllies = new String[0];
     public static volatile long lastUpdateMs;
 
     public static void handle(Packet250CustomPayload packet) {
@@ -53,6 +54,9 @@ public final class ClientPacketHandler {
                 int memCount = in.readInt();
                 String[] members = new String[memCount];
                 for (int i = 0; i < memCount; i++) members[i] = in.readUTF();
+                int allyCount = in.readInt();
+                String[] allies = new String[allyCount];
+                for (int i = 0; i < allyCount; i++) allies[i] = in.readUTF();
                 gridCenterCx = cx;
                 gridCenterCz = cz;
                 gridRadius = r;
@@ -65,6 +69,7 @@ public final class ClientPacketHandler {
                 myTeam = mt;
                 myTeamOwner = mtOwner;
                 myTeamMembers = members;
+                myTeamAllies = allies;
                 lastUpdateMs = System.currentTimeMillis();
             } else if (type == PacketHandler.PKT_TEAM_INFO) {
                 String name = in.readUTF();
@@ -76,9 +81,13 @@ public final class ClientPacketHandler {
                 int maxCL = in.readInt();
                 String[] members = new String[memCount];
                 for (int i = 0; i < memCount; i++) members[i] = in.readUTF();
+                int allyCount = in.readInt();
+                String[] allies = new String[allyCount];
+                for (int i = 0; i < allyCount; i++) allies[i] = in.readUTF();
                 myTeam = name;
                 myTeamOwner = ownerStr;
                 myTeamMembers = members;
+                myTeamAllies = allies;
                 usedClaims = used;
                 maxClaims = maxC;
                 usedChunkloads = usedCL;

@@ -41,6 +41,7 @@ public class PacketHandler implements IPacketHandler {
 	// server -> client
 	public static final byte PKT_LIST = 10;        // byte kind, int page, totalPages, total, count; count x row
 	public static final byte PKT_OPEN = 11;        // (no body) open the GUI
+	public static final byte PKT_NOTIFY = 12;      // UTF before, ItemStack unit, UTF after - client resolves the item name
 
 	// list kind
 	public static final byte KIND_BROWSE = 0;      // all listings (search applies)
@@ -106,6 +107,25 @@ public class PacketHandler implements IPacketHandler {
 		epm.sendChatToPlayer("§6[HDV]§r " + s);
 	}
 
+	/**
+	 * Sends a chat line whose middle is an item name the CLIENT must resolve. Modded item names live in
+	 * client-only .lang files, so the dedicated server can't translate them ("tile.machineBlock" / "?").
+	 * We ship the item (NBT preserved) plus the surrounding text and let the receiver format the name.
+	 */
+	private static void msgItem(EntityPlayerMP epm, String before, ItemStack unit, String after) {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(bos);
+		try {
+			dos.writeByte(PKT_NOTIFY);
+			dos.writeUTF(before == null ? "" : before);
+			ItemCodec.write(dos, unit);
+			dos.writeUTF(after == null ? "" : after);
+		} catch (IOException e) {
+			return;
+		}
+		sendTo(epm, bos.toByteArray());
+	}
+
 	private static boolean matches(Listing l, String search) {
 		if (search == null || search.length() == 0) return true;
 		String q = search.toLowerCase();
@@ -157,11 +177,11 @@ public class PacketHandler implements IPacketHandler {
 		if (l.quantity <= 0) data.remove(l.id);
 		else data.touch();
 
-		msg(epm, "§aBought " + qty + "x for " + EssentialsEco.format(total) + ".");
+		msgItem(epm, "§aBought " + qty + "x ", l.unit, " for " + EssentialsEco.format(total) + ".");
 		EntityPlayerMP seller = playerByName(l.seller);
 		if (seller != null) {
-			msg(seller, "§a" + epm.username + " bought " + qty + "x of your listing for "
-					+ EssentialsEco.format(sellerGets) + " (after tax).");
+			msgItem(seller, "§a" + epm.username + " bought " + qty + "x ", l.unit,
+					" of your listing for " + EssentialsEco.format(sellerGets) + " (after tax).");
 		}
 	}
 
@@ -207,7 +227,7 @@ public class PacketHandler implements IPacketHandler {
 
 		long id = data.nextId();
 		data.add(new Listing(id, epm.username, unit, qty, price, System.currentTimeMillis()));
-		msg(epm, "§aListed " + qty + "x at " + EssentialsEco.format(price) + " each.");
+		msgItem(epm, "§aListed " + qty + "x ", unit, " at " + EssentialsEco.format(price) + " each.");
 	}
 
 	private void handleCancel(EntityPlayerMP epm, long id) {
