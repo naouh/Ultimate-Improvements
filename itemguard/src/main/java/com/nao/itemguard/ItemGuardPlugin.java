@@ -43,10 +43,12 @@ import java.util.Set;
 public class ItemGuardPlugin extends JavaPlugin implements Listener {
 
 	// --- Config: blacklist -------------------------------------------------
-	/** IDs blacklisted regardless of data value. */
-	private final Set<Integer> blAnyData = new HashSet<Integer>();
-	/** Exact id:data combos blacklisted (encoded via encode()). */
-	private final Set<Long> blExact = new HashSet<Long>();
+	// Each blacklisted key maps to the set of (lowercase) world names it is blocked in.
+	// An EMPTY set is the marker for "all worlds" (blocked everywhere).
+	/** id (any data) -> worlds it's blocked in (empty = everywhere). */
+	private final Map<Integer, Set<String>> blAnyData = new HashMap<Integer, Set<String>>();
+	/** encoded id:data -> worlds it's blocked in (empty = everywhere). */
+	private final Map<Long, Set<String>> blExact = new HashMap<Long, Set<String>>();
 
 	// --- Config: limits ----------------------------------------------------
 	/** id (any data) -> limit definition. */
@@ -143,13 +145,24 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 		limExact.clear();
 
 		for (Object o : getConfig().getList("blacklist", new ArrayList<Object>())) {
-			int[] k = parseKey(o);
+			if (o == null) continue;
+			// An entry may carry an optional "@world1,world2" suffix scoping it to those worlds.
+			// Without a suffix the item is blocked everywhere.
+			String raw = o.toString().trim();
+			String keyPart = raw;
+			Set<String> worlds = null; // null = no suffix = all worlds
+			int at = raw.indexOf('@');
+			if (at >= 0) {
+				keyPart = raw.substring(0, at).trim();
+				worlds = parseWorlds(raw.substring(at + 1));
+			}
+			int[] k = parseKey(keyPart);
 			if (k == null) {
 				getLogger().warning("ItemGuard: ignoring invalid blacklist entry '" + o + "'.");
 				continue;
 			}
-			if (k[1] < 0) blAnyData.add(k[0]);
-			else blExact.add(encode(k[0], k[1]));
+			if (k[1] < 0) mergeBlacklist(blAnyData, k[0], worlds);
+			else mergeBlacklist(blExact, encode(k[0], k[1]), worlds);
 		}
 
 		ConfigurationSection limitsSec = getConfig().getConfigurationSection("limits");
@@ -176,9 +189,41 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 		}
 	}
 
-	private boolean isBlacklisted(int id, int data) {
-		if (blAnyData.contains(id)) return true;
-		return data >= 0 && blExact.contains(encode(id, data));
+	/** Splits "world1, world2" into a lowercase set; null if it names no world (treated as "all"). */
+	private static Set<String> parseWorlds(String s) {
+		Set<String> set = new HashSet<String>();
+		for (String part : s.split(",")) {
+			String w = part.trim().toLowerCase();
+			if (!w.isEmpty()) set.add(w);
+		}
+		return set.isEmpty() ? null : set;
+	}
+
+	/**
+	 * Records that {@code key} is blacklisted in {@code worlds} (null/empty = everywhere), merging
+	 * with any existing entry. "Everywhere" always wins over a world-scoped entry for the same key.
+	 */
+	private static <K> void mergeBlacklist(Map<K, Set<String>> map, K key, Set<String> worlds) {
+		Set<String> cur = map.get(key);
+		if (cur != null && cur.isEmpty()) return;            // already blocked everywhere
+		if (worlds == null || worlds.isEmpty()) {            // this entry means everywhere
+			map.put(key, new HashSet<String>());
+			return;
+		}
+		if (cur == null) map.put(key, new HashSet<String>(worlds));
+		else cur.addAll(worlds);
+	}
+
+	/** True if {@code worlds} (an empty set = everywhere) covers {@code world}. */
+	private static boolean matchesWorld(Set<String> worlds, String world) {
+		if (worlds == null) return false;                    // key not blacklisted at all
+		if (worlds.isEmpty()) return true;                   // blocked everywhere
+		return world != null && worlds.contains(world.toLowerCase());
+	}
+
+	private boolean isBlacklisted(int id, int data, String world) {
+		if (matchesWorld(blAnyData.get(id), world)) return true;
+		return data >= 0 && matchesWorld(blExact.get(encode(id, data)), world);
 	}
 
 	/** The limit def that applies to this item (exact id:data wins over bare id), or null. */
@@ -208,12 +253,14 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 	public void onPrepareCraft(PrepareItemCraftEvent event) {
 		ItemStack result = event.getInventory().getResult();
 		if (result == null) return;
-		if (!isBlacklisted(result.getTypeId(), result.getDurability())) return;
+		// World-scoped: hide the result only for crafters standing in a world where it's blocked.
 		boolean anyBypass = false;
+		boolean blocked = false;
 		for (org.bukkit.entity.HumanEntity v : event.getViewers()) {
 			if (v.hasPermission("itemguard.bypass")) { anyBypass = true; break; }
+			if (isBlacklisted(result.getTypeId(), result.getDurability(), v.getWorld().getName())) blocked = true;
 		}
-		if (!anyBypass) {
+		if (!anyBypass && blocked) {
 			event.getInventory().setResult(null);
 		}
 	}
@@ -222,8 +269,9 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onCraft(CraftItemEvent event) {
 		ItemStack result = event.getRecipe() != null ? event.getRecipe().getResult() : event.getCurrentItem();
-		if (result == null || !isBlacklisted(result.getTypeId(), result.getDurability())) return;
+		if (result == null) return;
 		if (event.getWhoClicked().hasPermission("itemguard.bypass")) return;
+		if (!isBlacklisted(result.getTypeId(), result.getDurability(), event.getWhoClicked().getWorld().getName())) return;
 		event.setCancelled(true);
 		if (event.getWhoClicked() instanceof Player) {
 			((Player) event.getWhoClicked()).sendMessage("§cThat item is blacklisted - you can't craft it.");
@@ -242,9 +290,9 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 		int id = hand != null ? hand.getTypeId() : event.getBlockPlaced().getTypeId();
 		int data = hand != null ? hand.getDurability() : event.getBlockPlaced().getData();
 
-		if (isBlacklisted(id, data)) {
+		if (isBlacklisted(id, data, event.getBlockPlaced().getWorld().getName())) {
 			event.setCancelled(true);
-			player.sendMessage("§cThat item is blacklisted - you can't place it.");
+			player.sendMessage("§cThat item is blacklisted in this world - you can't place it here.");
 			return;
 		}
 

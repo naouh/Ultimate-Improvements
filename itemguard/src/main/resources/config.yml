@@ -15,9 +15,23 @@
 
 # --- Blacklist ---------------------------------------------------------------
 # Items in this list can NOT be crafted and can NOT be placed.
+#
+# World scoping (optional): append "@world1,world2" to an entry to block it ONLY
+# in those worlds. With no "@..." suffix the item is blocked in EVERY world.
+#   - the world is the one the player is standing in when crafting, and the world
+#     the block is placed in when placing.
+#   - world names are matched case-insensitively (e.g. world, world_nether).
+#   - an entry WITH a "@" suffix MUST be quoted -> "901@world".
+#   - list the same ID twice to block it in several specific worlds, e.g.
+#       - "901@world"
+#       - "901@mining"
+#     (and a bare "901" anywhere makes it blocked everywhere regardless).
 blacklist:
-  # - 7          # bedrock (any data)
-  # - "243:1"    # only data value 1 of item 243
+  # - 7              # bedrock, blocked in every world
+  # - "243:1"        # only data value 1 of item 243, every world
+  # - "901@world"    # e.g. block the BuildCraft Quarry only in the 'world' (overworld),
+                     #      leaving it usable in every other world
+  # - "901@world,world_nether"   # block it in two specific worlds
 
 # --- Placement limits --------------------------------------------------------
 # How many of a given block a single player may have placed in the world at once.
