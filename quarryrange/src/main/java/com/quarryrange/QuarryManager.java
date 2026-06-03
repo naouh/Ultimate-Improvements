@@ -22,6 +22,7 @@ public final class QuarryManager {
 
     private static final Set<String> pending = new HashSet<String>();
     private static final Set<String> handled = new HashSet<String>();
+    private static final Set<String> candidates = new HashSet<String>();
 
     public static String key(int dim, int x, int y, int z) {
         return dim + ":" + x + ":" + y + ":" + z;
@@ -51,6 +52,28 @@ public final class QuarryManager {
         return new ArrayList<String>(pending);
     }
 
+    // ---- candidates (seen-once fresh placements awaiting confirmation) ----
+
+    /**
+     * A fresh quarry must be seen on two consecutive scans before its editor opens, so a placement
+     * another plugin cancels (e.g. ItemGuard's world blacklist) — which only reverts the block AFTER
+     * our tick scan first saw it — never pops the GUI.
+     *
+     * @return true once this position has already been seen on a previous scan (confirmed);
+     *         false on the very first sighting (recorded, wait one more tick).
+     */
+    public static synchronized boolean confirmCandidate(int dim, int x, int y, int z) {
+        return !candidates.add(key(dim, x, y, z));
+    }
+
+    public static synchronized void clearCandidate(int dim, int x, int y, int z) {
+        candidates.remove(key(dim, x, y, z));
+    }
+
+    public static synchronized List<String> snapshotCandidates() {
+        return new ArrayList<String>(candidates);
+    }
+
     // ---- handled (editor already opened) ----
 
     /** @return true if this position had NOT been handled yet (i.e. open the editor now). */
@@ -67,5 +90,6 @@ public final class QuarryManager {
         String k = key(dim, x, y, z);
         handled.remove(k);
         pending.remove(k);
+        candidates.remove(k);
     }
 }

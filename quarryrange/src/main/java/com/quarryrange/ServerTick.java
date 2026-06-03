@@ -51,10 +51,19 @@ public class ServerTick implements ITickHandler {
                 QuarryManager.clearPending(p[0], p[1], p[2], p[3]);
             }
         }
+        // Drop candidates whose block vanished before confirmation (e.g. a cancelled placement),
+        // so the same spot is a fresh candidate again next time.
+        for (String k : QuarryManager.snapshotCandidates()) {
+            if (!seen.contains(k)) {
+                int[] p = QuarryManager.parseKey(k);
+                QuarryManager.clearCandidate(p[0], p[1], p[2], p[3]);
+            }
+        }
     }
 
     private void scanWorld(WorldServer w, Set<String> seen) {
         int dim = w.provider.dimensionId;
+        int quarryId = ReflectQuarry.getQuarryBlockId();
         List<?> tiles = w.loadedTileEntityList;
         if (tiles == null || tiles.isEmpty()) return;
         // Snapshot: holding/opening editors can mutate the tile list.
@@ -64,6 +73,9 @@ public class ServerTick implements ITickHandler {
             TileEntity te = (TileEntity) o;
             if (!ReflectQuarry.isQuarry(te)) continue;
             int x = te.xCoord, y = te.yCoord, z = te.zCoord;
+            // Skip ghost tile entities whose block was already reverted/removed (e.g. a placement
+            // another plugin cancelled): only a real quarry block at the spot counts as present.
+            if (w.getBlockId(x, y, z) != quarryId) continue;
             seen.add(QuarryManager.key(dim, x, y, z));
 
             if (QuarryManager.isPending(dim, x, y, z)) {
@@ -75,8 +87,13 @@ public class ServerTick implements ITickHandler {
             // A quarry that still has a placedBy is freshly placed (BuildCraft sets it on placement;
             // it's null after a reload). The "handled" guard makes sure we open the editor exactly
             // once, never again after Apply, but again if the block is replaced.
+            //
+            // confirmCandidate requires the quarry to survive into a SECOND scan first: a placement
+            // another plugin cancels (ItemGuard world blacklist, claims, WorldGuard, ...) reverts the
+            // block only after our first scan saw it, so it's gone next tick and never opens the GUI.
             EntityPlayer placer = ReflectQuarry.getPlacedBy(te);
             if (placer instanceof EntityPlayerMP
+                    && QuarryManager.confirmCandidate(dim, x, y, z)
                     && QuarryManager.markHandledIfNew(dim, x, y, z)) {
                 openEditorFor(placer, w, x, y, z);
             }
