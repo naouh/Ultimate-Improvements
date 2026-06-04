@@ -1,0 +1,66 @@
+# DiscordBridge configuration.
+#
+# A two-way chat bridge: Minecraft chat -> Discord, and Discord -> Minecraft.
+# It connects to Discord over plain HTTPS and POLLS the channel for new messages
+# (no websocket / JDA).
+#
+# Quick setup (see README.md for the detailed walkthrough):
+#   1. https://discord.com/developers/applications -> New Application -> Bot tab -> Reset/Copy Token.
+#   2. !! Bot tab -> Privileged Gateway Intents -> turn ON "MESSAGE CONTENT INTENT" -> Save.
+#      Without it, Discord -> Minecraft arrives EMPTY (Discord blanks message content over REST too).
+#   3. Invite the bot to your server (OAuth2 -> URL Generator -> scope "bot",
+#      permission "View Channel", "Read Message History", "Send Messages").
+#   4. In Discord enable Developer Mode (Settings -> Advanced), right-click your
+#      channel -> Copy Channel ID.
+#   5. Paste the token and channel id below, then run /discordbridge reload (or restart).
+#
+# YAML note: do not use TAB characters for indentation - spaces only.
+
+discord:
+  # Bot token (Bot tab on the Discord developer portal). Keep this secret.
+  token: "YOUR_BOT_TOKEN_HERE"
+
+  # The text channel to bridge. Right-click the channel -> Copy Channel ID
+  # (needs Developer Mode enabled in Discord's settings).
+  channel-id: "000000000000000000"
+
+  # OPTIONAL. A channel webhook URL. If set, Minecraft chat shows up in Discord
+  # with each player's NAME as the author (nicer than a single bot account).
+  # Create one in Discord: channel settings -> Integrations -> Webhooks -> New Webhook
+  # -> Copy Webhook URL. Leave empty to send everything through the bot account.
+  webhook-url: ""
+
+  # OPTIONAL (webhook mode only). Avatar shown next to each player's message, so chat
+  # looks like the player's Minecraft head - the "DiscordSRV" look. {player} is replaced
+  # by the player's name. Uses a public head-render service; unknown/cracked names fall
+  # back to the default Steve head. Set to empty to use the webhook's own avatar instead.
+  avatar-url: "https://mc-heads.net/avatar/{player}/64.png"
+
+  # How often (seconds) to check Discord for new messages. 2-5 is a good range;
+  # lower = snappier but more requests. Minimum enforced: 1.
+  poll-interval: 3
+
+  # Skip messages posted by other bots / webhooks (prevents echo loops and bot spam).
+  ignore-bots: true
+
+# Which Minecraft events to announce in Discord (chat is always bridged).
+events:
+  join-quit: true          # "X joined / left the server"
+  server-start-stop: true  # "Server started / stopped"
+  deaths: false            # relay player death messages
+
+# Message templates.
+#   Toward Discord you can use Discord markdown (**bold**, etc.).
+#   Toward Minecraft you can use '&' colour codes (&9, &r, ...).
+messages:
+  # MC -> Discord. Only used when NO webhook-url is set (with a webhook the player
+  # name is the author, so just "{message}" is sent). {player} {message} {world}
+  chat-to-discord: "**{player}**: {message}"
+  join-to-discord: ":green_circle: **{player}** joined the server"
+  quit-to-discord: ":red_circle: **{player}** left the server"
+  death-to-discord: ":skull: {message}"
+  server-start: ":white_check_mark: Server is now online"
+  server-stop: ":octagonal_sign: Server is shutting down"
+
+  # Discord -> MC. {user} = Discord display name, {message} = message content.
+  discord-to-mc: "&9[Discord] &b{user}&r: {message}"

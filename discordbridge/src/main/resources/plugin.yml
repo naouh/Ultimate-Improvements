@@ -1,0 +1,15 @@
+name: DiscordBridge
+main: com.nao.discordbridge.DiscordBridgePlugin
+version: ${version}
+author: Naouh
+description: Two-way chat bridge between Minecraft and a Discord channel.
+commands:
+  discordbridge:
+    description: DiscordBridge admin commands.
+    usage: /discordbridge <reload|status>
+    aliases: [dbridge]
+    permission: discordbridge.admin
+permissions:
+  discordbridge.admin:
+    description: Use /discordbridge (reload, status).
+    default: op
