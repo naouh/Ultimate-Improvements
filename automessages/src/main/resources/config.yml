@@ -1,0 +1,34 @@
+# AutoMessages configuration.
+#
+# Periodic announcements that cycle through the list below and are shown to every online player
+# (except those who turned them off with /automsg off). The opt-out is saved per player in data.yml,
+# so it sticks across reconnects and restarts.
+#
+# Colour codes use '&' (e.g. &a green, &e yellow, &l bold, &r reset). Each entry may contain "\n"
+# to span several lines. The 'prefix' below is prepended to every message.
+#
+# YAML note: spaces only for indentation, never TAB characters.
+
+# How often to post the next message, in minutes (decimals allowed, e.g. 2.5). Floor is 5 seconds.
+interval-minutes: 5.0
+
+# "sequential" = go down the list in order and loop; "random" = pick a random one each time
+# (never the same one twice in a row).
+order: sequential
+
+# Prepended to every message. Set to "" for no prefix.
+prefix: "&8[&bInfo&8]&r "
+
+# The messages to cycle through. Add, remove or reorder freely, then run /automsg reload.
+# Keys shown below are the DEFAULTS - every one is rebindable in Options -> Controls.
+messages:
+  - "&7Press &e&lG&7 to open the &fServer Guide&7 - rules, banned items and a beginner tutorial for the pack. &8(or /guide)"
+  - "&7Press &e&lQ&7 to open the &fQuest book&7 - follow quests and earn achievements & rewards as you play."
+  - "&7Press &e&lJ&7 to open the &fClaim Map&7 - claim your land so nobody can grief it, and manage your team. &8(/claim, /team)"
+  - "&7Voice chat: hold &e&lV&7 to talk to nearby players, and press &e&lB&7 for the voice menu (volume & settings)."
+  - "&7New here? Press &e&lG&7 for the guide, then &e&lJ&7 to claim your first base."
+  - "&7All hotkeys (&eG&7 guide, &eQ&7 quests, &eJ&7 claims, &eV&7/&eB&7 voice) are rebindable in &fOptions -> Controls&7."
+  - "&7Join our Discord for help, news and to chat with the community: &b&nhttps://discord.gg/szt3vNXYBZ"
+  - "&7Need a hand? Ask in chat - the staff and other players are happy to help."
+  - "&7Having fun? Tell a friend - more players means a livelier world. :)"
+  - "&7Type &a/automsg off&7 to hide these tips (and &a/automsg on&7 to bring them back)."

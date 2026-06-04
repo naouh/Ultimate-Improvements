@@ -1,0 +1,52 @@
+// AutoMessages - periodic chat announcements with a per-player opt-out, for MCPC+ 1.4.7.
+//
+// Plain Java + plugin.yml -> a jar dropped in the server's plugins/ folder. Same recipe as
+// WorldBackup / DiscordBridge / ItemGuard: compiled against the server jar itself (mcpc-plus.jar
+// bundles the whole org.bukkit API) because the old Bukkit 1.4.7 Maven repos are long dead.
+// compileOnly: the server provides those classes at runtime. Zero runtime dependencies.
+
+plugins {
+	id 'java'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(8)   // MCPC+ 1.4.7 runs on Java 8
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.automessages'
+archivesBaseName = 'automessages'
+version = '1.0.0'
+
+// Path to the running server: source of the Bukkit API + where the plugin is deployed.
+ext.serverDir = "C:/Users/Nao/Desktop/ultimate-remastered"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly files("${serverDir}/mcpc-plus.jar")
+}
+
+processResources {
+	// Let plugin.yml use ${version} from gradle so it never drifts.
+	filesMatching('plugin.yml') {
+		expand(version: project.version)
+	}
+}
+
+task installToPlugins(type: Copy) {
+	def deployDir = file("${serverDir}/plugins")
+	from jar
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server plugins dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToPlugins] Copied ${jar.archivePath.name} -> ${deployDir}"
+	}
+}
+installToPlugins.dependsOn jar
+build.finalizedBy installToPlugins

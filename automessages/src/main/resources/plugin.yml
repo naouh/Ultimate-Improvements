@@ -1,0 +1,18 @@
+name: AutoMessages
+main: com.nao.automessages.AutoMessagesPlugin
+version: ${version}
+author: Naouh
+description: Periodic chat announcements that cycle on a timer, with a per-player opt-out that is saved.
+commands:
+  automessages:
+    description: Toggle auto-messages for yourself, or manage them (admin).
+    usage: /automessages <on|off|toggle> | (admin) reload|status|list|next
+    aliases: [automsg, am]
+    permission: automessages.toggle
+permissions:
+  automessages.toggle:
+    description: Toggle auto-messages on/off for yourself.
+    default: true
+  automessages.admin:
+    description: Manage AutoMessages (reload, status, list, next).
+    default: op
