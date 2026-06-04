@@ -1,0 +1,15 @@
+name: WorldBackup
+main: com.nao.worldbackup.WorldBackupPlugin
+version: ${version}
+author: Naouh
+description: Low-lag, TickThreading-safe scheduled world backups (zips every world folder off-thread).
+commands:
+  backup:
+    description: Run or inspect world backups.
+    usage: /backup <now|status|list|reload>
+    aliases: [worldbackup, wbackup]
+    permission: worldbackup.admin
+permissions:
+  worldbackup.admin:
+    description: Use /backup (now, status, list, reload).
+    default: op

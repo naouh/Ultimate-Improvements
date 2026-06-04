@@ -1,0 +1,59 @@
+# WorldBackup configuration.
+#
+# Backs up your world folders into a single .zip per run. Designed for MCPC+ 1.4.7 + TickThreading:
+#   - The only work on the server thread is one save-flush + "autosave off" (cost = one normal
+#     autosave tick). The whole archive is written on a SEPARATE background thread, so zipping never
+#     lags the server. When it's done, autosave is turned back on.
+#   - Every loaded world has saving frozen during the copy, so region files stay consistent while
+#     being read (this is the same per-world flag TickThreading respects).
+#
+# Forge/MCPC+ note: each dimension is its own top-level folder (world, world_nether, world_the_end,
+# world_twilightforest, world_myst). Whole folders are archived recursively, so Mystcraft ages inside
+# world_myst (world_myst/age2, ...) come along automatically. Worlds that aren't currently loaded are
+# auto-detected too, so a sleeping dimension still gets backed up.
+#
+# YAML note: spaces only for indentation, never TAB characters.
+
+backup:
+  # Minutes between automatic backups. 0 = no schedule (manual /backup only).
+  interval-minutes: 120
+
+  # Run one backup ~30s after the server finishes starting. Usually leave false.
+  on-startup: false
+
+  # Where archives are written. Relative paths are under the server folder. Keep this OUTSIDE your
+  # world folders (the default "backups" is fine). Ideally point it at another disk/drive.
+  output-dir: "backups"
+
+  # How many archives to keep. Once you have more, the oldest are deleted. 0 = keep everything
+  # (you manage disk yourself).
+  keep: 10
+
+  # Zip compression 0-9. 0 = stored (fastest CPU, biggest file). 1 = light compression, very low CPU
+  # (recommended). 6 = default zip. 9 = max (slow, high CPU - not worth it on a live server).
+  compression-level: 1
+
+  # Worlds to back up, by folder name (e.g. ["world", "world_nether", "world_myst"]). Absolute paths
+  # are allowed too. Leave EMPTY to auto-detect every world folder (recommended).
+  worlds: []
+
+  # Freeze world saving while copying so the archive is internally consistent. STRONGLY recommended.
+  # While a backup runs the server keeps changes in memory but doesn't write them to disk; if you set
+  # this false, zipping is slightly faster but a region file could be copied mid-write (minor risk).
+  disable-save-during-backup: true
+
+  # Skip the backup if the output drive has less than this many MB free. 0 = never skip on space.
+  min-free-space-mb: 1024
+
+  # Sleep this many milliseconds after each file while zipping, to spread out disk I/O on a busy
+  # server (gentler on the disk, backups take longer). 0 = full speed. Try 1-2 if you ever see I/O lag.
+  throttle-ms: 0
+
+messages:
+  # true = tell everyone online when a backup starts/finishes. false = only console + the op who ran it.
+  broadcast: true
+
+  # '&' colour codes work. Placeholders: {size} {files} {seconds}.
+  start: "&7[Backup] &fStarting world backup..."
+  done: "&7[Backup] &aBackup complete (&f{size}&a, {files} files) in &f{seconds}s&a."
+  failed: "&7[Backup] &cBackup failed - see console."
