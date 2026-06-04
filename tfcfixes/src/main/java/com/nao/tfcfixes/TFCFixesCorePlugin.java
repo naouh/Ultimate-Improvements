@@ -30,7 +30,11 @@ public class TFCFixesCorePlugin implements IFMLLoadingPlugin {
             // Post-teleport/login TileEntity sync race: window-items crash + ghost interaction
             // (merged from windowitemsfix).
             "com.nao.tfcfixes.asm.RightClickGuardTransformer",
-            "com.nao.tfcfixes.asm.ContainerTransformer"
+            "com.nao.tfcfixes.asm.ContainerTransformer",
+            // Applied Energistics (rv9) under TickThreading: serialize controller network locking
+            // onto a single global monitor (kills the cross-region AB-BA deadlock + subnet
+            // corruption) and fix the level-emitter visibility race.
+            "com.nao.tfcfixes.asm.AppEngLockTransformer"
         };
     }
 
