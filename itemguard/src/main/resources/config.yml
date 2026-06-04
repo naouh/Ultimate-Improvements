@@ -14,12 +14,15 @@
 # Players with the itemguard.bypass permission ignore every rule below.
 
 # --- Blacklist ---------------------------------------------------------------
-# Items in this list can NOT be crafted and can NOT be placed.
+# A GLOBAL entry (no "@world" suffix) can NOT be crafted and can NOT be placed,
+# in any world. A WORLD-SCOPED entry ("@world") only blocks PLACEMENT in those
+# worlds - the item can still be crafted and carried (you can't scope a craft to
+# a world, since items move freely between worlds).
 #
-# World scoping (optional): append "@world1,world2" to an entry to block it ONLY
-# in those worlds. With no "@..." suffix the item is blocked in EVERY world.
-#   - the world is the one the player is standing in when crafting, and the world
-#     the block is placed in when placing.
+# World scoping (optional): append "@world1,world2" to an entry to block its
+# PLACEMENT ONLY in those worlds. With no "@..." suffix the item is blocked
+# (craft + place) in EVERY world.
+#   - the world checked is the one the block is placed in.
 #   - world names are matched case-insensitively (e.g. world, world_nether).
 #   - an entry WITH a "@" suffix MUST be quoted -> "901@world".
 #   - list the same ID twice to block it in several specific worlds, e.g.
@@ -29,8 +32,8 @@
 blacklist:
   # - 7              # bedrock, blocked in every world
   # - "243:1"        # only data value 1 of item 243, every world
-  # - "901@world"    # e.g. block the BuildCraft Quarry only in the 'world' (overworld),
-                     #      leaving it usable in every other world
+  # - "901@world"    # e.g. block PLACING the BuildCraft Quarry only in the 'world'
+                     #      (overworld); it can still be crafted and placed elsewhere
   # - "901@world,world_nether"   # block it in two specific worlds
 
 # --- Placement limits --------------------------------------------------------

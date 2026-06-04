@@ -31,8 +31,10 @@ import java.util.Set;
  * or an ID:data pair ("243:1", matches only that subtype), so mods that pack many items onto one
  * ID (Railcraft anchors, etc.) can be targeted precisely.
  *
- *   1) Blacklist: matching items can't be crafted (result is wiped from the grid and the craft is
- *      cancelled) and can't be placed.
+ *   1) Blacklist: a GLOBAL entry (no "@world" suffix) can't be crafted (result is wiped from the
+ *      grid and the craft is cancelled) nor placed, in any world. A WORLD-SCOPED entry ("@world")
+ *      only blocks PLACEMENT in those worlds - crafting and carrying the item stay allowed (you
+ *      can't meaningfully scope a craft to a world, since items travel between worlds).
  *   2) Placement limits: a player may only have N matching blocks placed at once. The cap is
  *      resolved from permissions (highest matching wins), so groups like builder/donator get
  *      different limits. Breaking one of your own placed blocks frees a slot.
@@ -226,6 +228,20 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 		return data >= 0 && matchesWorld(blExact.get(encode(id, data)), world);
 	}
 
+	/**
+	 * True only if this item is blacklisted in EVERY world (the empty-set marker), as opposed to a
+	 * world-scoped entry. Crafting is gated on this: a world-scoped ban blocks placement only.
+	 */
+	private boolean isBlockedEverywhere(int id, int data) {
+		Set<String> any = blAnyData.get(id);
+		if (any != null && any.isEmpty()) return true;
+		if (data >= 0) {
+			Set<String> exact = blExact.get(encode(id, data));
+			if (exact != null && exact.isEmpty()) return true;
+		}
+		return false;
+	}
+
 	/** The limit def that applies to this item (exact id:data wins over bare id), or null. */
 	private LimitDef limitDefFor(int id, int data) {
 		if (data >= 0) {
@@ -253,25 +269,21 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 	public void onPrepareCraft(PrepareItemCraftEvent event) {
 		ItemStack result = event.getInventory().getResult();
 		if (result == null) return;
-		// World-scoped: hide the result only for crafters standing in a world where it's blocked.
-		boolean anyBypass = false;
-		boolean blocked = false;
+		// Crafting is only blocked for GLOBAL bans; world-scoped entries restrict placement only.
+		if (!isBlockedEverywhere(result.getTypeId(), result.getDurability())) return;
 		for (org.bukkit.entity.HumanEntity v : event.getViewers()) {
-			if (v.hasPermission("itemguard.bypass")) { anyBypass = true; break; }
-			if (isBlacklisted(result.getTypeId(), result.getDurability(), v.getWorld().getName())) blocked = true;
+			if (v.hasPermission("itemguard.bypass")) return;   // a bypasser is viewing - allow it
 		}
-		if (!anyBypass && blocked) {
-			event.getInventory().setResult(null);
-		}
+		event.getInventory().setResult(null);
 	}
 
-	/** Safety net: cancel the actual craft of a blacklisted result. */
+	/** Safety net: cancel the actual craft of a globally blacklisted result. */
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onCraft(CraftItemEvent event) {
 		ItemStack result = event.getRecipe() != null ? event.getRecipe().getResult() : event.getCurrentItem();
 		if (result == null) return;
 		if (event.getWhoClicked().hasPermission("itemguard.bypass")) return;
-		if (!isBlacklisted(result.getTypeId(), result.getDurability(), event.getWhoClicked().getWorld().getName())) return;
+		if (!isBlockedEverywhere(result.getTypeId(), result.getDurability())) return;
 		event.setCancelled(true);
 		if (event.getWhoClicked() instanceof Player) {
 			((Player) event.getWhoClicked()).sendMessage("§cThat item is blacklisted - you can't craft it.");
@@ -292,7 +304,8 @@ public class ItemGuardPlugin extends JavaPlugin implements Listener {
 
 		if (isBlacklisted(id, data, event.getBlockPlaced().getWorld().getName())) {
 			event.setCancelled(true);
-			player.sendMessage("§cThat item is blacklisted in this world - you can't place it here.");
+			String where = isBlockedEverywhere(id, data) ? "" : " in this world";
+			player.sendMessage("§cThat item is blacklisted" + where + " - you can't place it here.");
 			return;
 		}
 
