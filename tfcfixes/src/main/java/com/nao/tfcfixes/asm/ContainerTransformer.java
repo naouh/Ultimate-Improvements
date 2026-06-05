@@ -84,12 +84,17 @@ public class ContainerTransformer implements IClassTransformer {
         }
     }
 
-    /** Accept obf {@code a([Lur;)V} or clean {@code putStacksInSlots([L...ItemStack;)V}. */
+    /**
+     * Accept putStacksInSlots regardless of how the runtime names the method. MCPC+/Cauldron runs
+     * FML-deobfuscated: classes get MCP names ({@code net.minecraft.inventory.Container}) but methods
+     * keep SRG names ({@code func_75131_a}), which matched neither the obf ({@code a}) nor the MCP
+     * ({@code putStacksInSlots}) name - so the patch silently no-op'd on the server
+     * ("putStacksInSlots not found"). putStacksInSlots is the only Container method taking a single
+     * array-of-objects and returning void, so we match purely by descriptor. This is naming-agnostic
+     * across obf {@code ([Lur;)V}, MCP/SRG {@code ([Lnet/minecraft/item/ItemStack;)V}, etc.
+     */
     private static boolean matchesPutStacksInSlots(MethodNode m) {
-        if (m.desc == null) return false;
-        if (METHOD_CLEAN.equals(m.name) && m.desc.startsWith("([L") && m.desc.endsWith(";)V")) return true;
-        if (METHOD_OBF.equals(m.name) && METHOD_DESC_OBF.equals(m.desc)) return true;
-        return false;
+        return m.desc != null && m.desc.startsWith("([L") && m.desc.endsWith(";)V");
     }
 
     /**
