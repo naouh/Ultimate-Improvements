@@ -20,12 +20,16 @@ public final class Config {
 	public static String serverName = "T1F";
 	/** Second line under the app name (optional). */
 	public static String details = "";
-	/** Third line (optional). */
+	/** Third line (optional). Ignored when {@link #showPlayerCount} is on - the count takes this line. */
 	public static String state = "";
 	/** Rich Presence asset key uploaded in the dev portal (optional; blank = no image). */
 	public static String largeImageKey = "";
 	/** Show the "elapsed" timer since the player connected. */
 	public static boolean showElapsed = true;
+	/** Show the live online-player count on the "state" (third) line. */
+	public static boolean showPlayerCount = true;
+	/** Optional server max-player slots; if &gt; 0 the count renders as "X/Y players". 0 = just "X players". */
+	public static int serverMaxPlayers = 0;
 
 	public static void load(File file) {
 		Configuration cfg = new Configuration(file);
@@ -42,6 +46,10 @@ public final class Config {
 				"Rich Presence asset key from the dev portal (blank = no image).").value;
 		showElapsed = cfg.get("general", "showElapsed", true,
 				"Show the elapsed timer since connecting.").getBoolean(true);
+		showPlayerCount = cfg.get("general", "showPlayerCount", true,
+				"Show the live online-player count on the state line (overrides 'state' while on a server).").getBoolean(true);
+		serverMaxPlayers = cfg.get("general", "serverMaxPlayers", 0,
+				"Server max-player slots; >0 renders the count as 'X/Y players', 0 shows just 'X players'.").getInt(0);
 		cfg.save();
 	}
 
