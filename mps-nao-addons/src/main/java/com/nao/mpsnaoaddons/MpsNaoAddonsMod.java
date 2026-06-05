@@ -15,6 +15,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.registry.TickRegistry;
+import cpw.mods.fml.relauncher.Side;
 
 /**
  * Forge mod entry. Bytecode patches are installed by
@@ -39,6 +41,11 @@ public class MpsNaoAddonsMod {
         // the player can interact with the world. We don't need to wait for
         // PostInit because the handler resolves MPS classes lazily.
         MinecraftForge.EVENT_BUS.register(new OmniWrenchEventHandler());
+
+        // Server-side sweep that strips MPS' stray "mmmpsmod" stamp off ordinary items already sitting
+        // in players' inventories, so stacks that were corrupted before this fix self-heal (see
+        // MuseTagGuard / MuseItemUtilsTransformer.getMuseItemTag guard for the prevention side).
+        TickRegistry.registerTickHandler(new MmmpsmodCleanupHandler(), Side.SERVER);
     }
 
     @PostInit
