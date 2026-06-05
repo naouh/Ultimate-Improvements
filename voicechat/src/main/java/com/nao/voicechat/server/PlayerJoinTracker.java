@@ -7,9 +7,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 /**
- * Pushes the voicechat handshake to every player as soon as FML signals login, and tears down
- * their session on logout. Dimension changes / respawns don't touch the session — the player's
- * entity ID is what matters and that's preserved.
+ * Pushes the voicechat handshake to every player as soon as FML signals login. Nothing to tear
+ * down on logout — there are no server-side sessions any more; remote clients reap the talker's
+ * playback stream on their own idle timeout.
  */
 public class PlayerJoinTracker implements IPlayerTracker {
 
@@ -19,12 +19,7 @@ public class PlayerJoinTracker implements IPlayerTracker {
         HandshakePacketHandler.sendHandshake((EntityPlayerMP) player);
     }
 
-    @Override
-    public void onPlayerLogout(EntityPlayer player) {
-        if (!(player instanceof EntityPlayerMP)) return;
-        VoiceServer.removeSession(player.entityId);
-    }
-
+    @Override public void onPlayerLogout(EntityPlayer player) {}
     @Override public void onPlayerChangedDimension(EntityPlayer player) {}
     @Override public void onPlayerRespawn(EntityPlayer player) {}
 }

@@ -66,7 +66,7 @@ public class VoiceChatMod {
 
     @ServerStarting
     public void onServerStarting(FMLServerStartingEvent e) {
-        VoiceServer.start(VoiceConfig.udpPort);
+        VoiceServer.start();
         GameRegistry.registerPlayerTracker(new PlayerJoinTracker());
     }
 

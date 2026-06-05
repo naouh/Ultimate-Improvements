@@ -1,43 +1,47 @@
 package com.nao.voicechat.client;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+
 import com.nao.voicechat.network.HandshakePacketHandler;
 import com.nao.voicechat.network.HandshakePacketHandler.Handshake;
-
-import net.minecraft.client.Minecraft;
+import com.nao.voicechat.proto.VoiceProto;
 
 /**
- * Called by {@link HandshakePacketHandler} on the client side when a handshake arrives over the
- * "VC" custom-payload channel. Reflective entry point — keep the signature exactly
- * {@code public static void handle(byte[])} or the server-side dispatcher breaks.
+ * Client-side entry point for the "VC" channel — called reflectively by
+ * {@link HandshakePacketHandler} so the dedicated server never classloads it. Keep the signature
+ * exactly {@code public static void handle(byte[])}.
+ *
+ * Two message types arrive here: the login handshake (arms mic capture) and forwarded audio
+ * frames (decoded straight into {@link AudioPlayback}).
  */
 public final class ClientHandshakeReceiver {
 
     private ClientHandshakeReceiver() {}
 
     public static void handle(byte[] data) {
+        if (data == null || data.length < 1) return;
+        byte type = data[0];
         try {
-            Handshake h = HandshakePacketHandler.parseHandshake(data);
-
-            String host = (h.udpHost == null || h.udpHost.isEmpty())
-                          ? Minecraft.getMinecraft().getServerData() != null
-                                ? hostOnly(Minecraft.getMinecraft().getServerData().serverIP)
-                                : "127.0.0.1"
-                          : h.udpHost;
-
-            VoiceClient.connect(host, h.udpPort, h.tokenHi, h.tokenLo,
-                                h.sampleRate, h.frameSamples, h.maxRange);
-            System.out.println("[VoiceChat] handshake → udp " + host + ":" + h.udpPort +
-                               " sr=" + h.sampleRate + " frame=" + h.frameSamples +
-                               " range=" + h.maxRange);
+            if (type == VoiceProto.CTRL_HANDSHAKE) {
+                Handshake h = HandshakePacketHandler.parseHandshake(data);
+                VoiceClient.connect(h.sampleRate, h.frameSamples, h.maxRange);
+                System.out.println("[VoiceChat] voice enabled by server (sr=" + h.sampleRate +
+                                   " frame=" + h.frameSamples + " range=" + h.maxRange +
+                                   ") — audio over MC channel \"" + VoiceProto.CTRL_CHANNEL + "\"");
+            } else if (type == VoiceProto.CTRL_AUDIO_S2C) {
+                DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
+                in.readByte();                       // type
+                int senderEntityId = in.readInt();
+                int seq            = in.readInt();
+                int len            = in.readShort() & 0xFFFF;
+                if (len <= 0 || len > data.length) return;
+                byte[] payload = new byte[len];
+                in.readFully(payload, 0, len);
+                AudioPlayback.enqueue(senderEntityId, seq, payload);
+            }
         } catch (Throwable t) {
-            System.err.println("[VoiceChat] handshake parse failed: " + t);
-            t.printStackTrace();
+            System.err.println("[VoiceChat] client packet handling failed: " + t);
         }
-    }
-
-    private static String hostOnly(String serverIP) {
-        if (serverIP == null) return "127.0.0.1";
-        int colon = serverIP.indexOf(':');
-        return colon < 0 ? serverIP : serverIP.substring(0, colon);
     }
 }
