@@ -8,8 +8,6 @@ public final class VoiceConfig {
 
     private VoiceConfig() {}
 
-    public static int     udpPort;
-    public static String  publicHost;
     public static int     maxRangeBlocks;
     public static int     micGainPercent;
     public static int     spkGainPercent;
@@ -29,13 +27,6 @@ public final class VoiceConfig {
                     "enabled: master switch (client). When false, mic capture is off and " +
                     "incoming audio is dropped. Toggled at runtime via the mute GUI (B).");
             enabled        = cfg.get("general", "enabled", true).getBoolean(true);
-
-            cfg.addCustomCategoryComment("network",
-                    "udpPort: UDP port the voice server listens on (server side). " +
-                    "publicHost: hostname/IP the client should connect to; leave empty to reuse " +
-                    "the host of the Minecraft connection.");
-            udpPort        = cfg.get("network", "udpPort", 25566).getInt();
-            publicHost     = cfg.get("network", "publicHost", "").value;
 
             cfg.addCustomCategoryComment("audio",
                     "maxRangeBlocks: distance (blocks) at which a talker is fully attenuated. " +

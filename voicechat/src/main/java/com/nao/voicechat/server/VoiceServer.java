@@ -1,8 +1,5 @@
 package com.nao.voicechat.server;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 import com.nao.voicechat.VoiceConfig;
@@ -54,8 +51,8 @@ public final class VoiceServer {
         int    senderDim = sender.worldObj.provider.dimensionId;
         double rangeSq = (double) VoiceConfig.maxRangeBlocks * VoiceConfig.maxRangeBlocks;
 
-        // Build the forwarded packet once: it's identical for every recipient.
-        byte[] data = buildAudioPacket(sender.entityId, seq, payload);
+        // Built lazily on the first eligible recipient — a talker with nobody in range pays nothing.
+        byte[] data = null;
 
         List<EntityPlayerMP> all = mc.getConfigurationManager().playerEntityList;
         for (int i = 0, n = all.size(); i < n; i++) {
@@ -66,6 +63,7 @@ public final class VoiceServer {
             double dx = rcv.posX - sx, dy = rcv.posY - sy, dz = rcv.posZ - sz;
             if (dx * dx + dy * dy + dz * dz > rangeSq) continue;
 
+            if (data == null) data = buildAudioPacket(sender.entityId, seq, payload);
             Packet250CustomPayload pkt = new Packet250CustomPayload();
             pkt.channel = VoiceProto.CTRL_CHANNEL;
             pkt.data    = data;
@@ -75,17 +73,20 @@ public final class VoiceServer {
     }
 
     private static byte[] buildAudioPacket(int senderEntityId, int seq, byte[] payload) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(1 + 4 + 4 + 2 + payload.length);
-        DataOutputStream dos = new DataOutputStream(bos);
-        try {
-            dos.writeByte(VoiceProto.CTRL_AUDIO_S2C);
-            dos.writeInt(senderEntityId);
-            dos.writeInt(seq);
-            dos.writeShort(payload.length);
-            dos.write(payload, 0, payload.length);
-        } catch (IOException ignored) {
-            // ByteArrayOutputStream never throws; nothing to do.
-        }
-        return bos.toByteArray();
+        int len = payload.length;
+        byte[] data = new byte[1 + 4 + 4 + 2 + len];
+        data[0]  = VoiceProto.CTRL_AUDIO_S2C;
+        data[1]  = (byte) (senderEntityId >>> 24);
+        data[2]  = (byte) (senderEntityId >>> 16);
+        data[3]  = (byte) (senderEntityId >>> 8);
+        data[4]  = (byte) senderEntityId;
+        data[5]  = (byte) (seq >>> 24);
+        data[6]  = (byte) (seq >>> 16);
+        data[7]  = (byte) (seq >>> 8);
+        data[8]  = (byte) seq;
+        data[9]  = (byte) (len >>> 8);
+        data[10] = (byte) len;
+        System.arraycopy(payload, 0, data, 11, len);
+        return data;
     }
 }

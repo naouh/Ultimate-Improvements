@@ -1,9 +1,5 @@
 package com.nao.voicechat.client;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
 import com.nao.voicechat.proto.VoiceProto;
 
 import cpw.mods.fml.common.network.PacketDispatcher;
@@ -59,17 +55,16 @@ public final class VoiceClient {
     public static void sendAudio(byte[] mulawFrame, int length) {
         if (!running) return;
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(1 + 4 + 2 + length);
-        DataOutputStream dos = new DataOutputStream(bos);
-        try {
-            dos.writeByte(VoiceProto.CTRL_AUDIO_C2S);
-            dos.writeInt(outSeq++);
-            dos.writeShort(length);
-            dos.write(mulawFrame, 0, length);
-        } catch (IOException e) {
-            return;
-        }
-        byte[] data = bos.toByteArray();
+        int seq = outSeq++;
+        byte[] data = new byte[1 + 4 + 2 + length];
+        data[0] = VoiceProto.CTRL_AUDIO_C2S;
+        data[1] = (byte) (seq >>> 24);
+        data[2] = (byte) (seq >>> 16);
+        data[3] = (byte) (seq >>> 8);
+        data[4] = (byte) seq;
+        data[5] = (byte) (length >>> 8);
+        data[6] = (byte) length;
+        System.arraycopy(mulawFrame, 0, data, 7, length);
 
         Packet250CustomPayload pkt = new Packet250CustomPayload();
         pkt.channel = VoiceProto.CTRL_CHANNEL;

@@ -90,6 +90,8 @@ public final class AudioPlayback {
         SourceDataLine line;
         long lastWriteMs;
         int  lastSeq = Integer.MIN_VALUE;
+        short[] pcmBuf;   // reused decode scratch; grows only if a frame is unexpectedly larger
+        byte[]  outBuf;   // reused 16-bit output scratch (2 bytes/sample)
 
         Stream(int entityId) { this.entityId = entityId; }
 
@@ -113,28 +115,32 @@ public final class AudioPlayback {
             lastSeq = seq;
             lastWriteMs = System.currentTimeMillis();
 
-            short[] pcm = new short[mulaw.length];
-            MuLawCodec.decode(mulaw, mulaw.length, pcm);
+            int count = mulaw.length;
+            if (pcmBuf == null || pcmBuf.length < count) {
+                pcmBuf = new short[count];
+                outBuf = new byte[count * 2];
+            }
+            MuLawCodec.decode(mulaw, count, pcmBuf);
 
             float att = computeAttenuation();
             int spkGain = VoiceConfig.spkGainPercent;
 
-            byte[] out = new byte[pcm.length * 2];
-            for (int i = 0; i < pcm.length; i++) {
-                int s = (int) (pcm[i] * att);
+            for (int i = 0; i < count; i++) {
+                int s = (int) (pcmBuf[i] * att);
                 if (spkGain != 100) s = (s * spkGain) / 100;
                 if (s > 32767)  s = 32767;
                 if (s < -32768) s = -32768;
-                out[i * 2]     = (byte) (s & 0xFF);
-                out[i * 2 + 1] = (byte) ((s >> 8) & 0xFF);
+                outBuf[i * 2]     = (byte) (s & 0xFF);
+                outBuf[i * 2 + 1] = (byte) ((s >> 8) & 0xFF);
             }
 
             SourceDataLine l = line;
             if (l != null) {
                 // Non-blocking: write as much as the buffer accepts and drop the rest.
+                int bytes = count * 2;
                 int writable = l.available();
-                int n = Math.min(writable, out.length);
-                if (n > 0) l.write(out, 0, n);
+                int n = Math.min(writable, bytes);
+                if (n > 0) l.write(outBuf, 0, n);
             }
         }
 
