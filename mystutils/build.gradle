@@ -1,0 +1,100 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.mystutils'
+archivesBaseName = 'mystutils'
+version = '1.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// Mystcraft is reached purely by reflection at runtime (AgeData, Page, SymbolManager,
+	// PositionableItem), so its jar is not needed on the compile classpath. The GUI patches are
+	// applied by ASM against the obfuscated runtime bytecode, not compiled against Mystcraft.
+}
+
+// Combined jar: an FML CoreMod (the writing-desk search ASM patches) that ALSO carries a plain
+// @Mod (the /instabilities command). Both live in one coremod jar.
+jar {
+	manifest {
+		attributes(
+			'FMLCorePlugin': 'com.nao.mystutils.MystUtilsCorePlugin',
+			'FMLCorePluginContainsFMLMod': 'true'
+		)
+	}
+}
+
+volde {
+}
+
+// FMLCorePlugin jars load from /coremods on both sides. The command is server-side and the search
+// is client-side, so the same jar is wanted on client and server. Missing targets fail loudly so a
+// typo can't silently skip a deploy.
+task installToCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Coremods deploy dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToCoremods
+
+task installToServerCoremods(type: Copy) {
+	def deployDir = file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server coremods dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToServerCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToServerCoremods.dependsOn remapJarForRelease
+build.finalizedBy installToServerCoremods
+
+// The actually-played Prism instance ("The Favoured Craft"). Kept as its own task so a missing
+// instance just skips instead of failing the whole build.
+task installToFavouredCraft(type: Copy) {
+	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/The Favoured Craft/minecraft/coremods")
+	from(remapJarForRelease.archivePath)
+	into deployDir
+	onlyIf { deployDir.exists() }
+	doLast {
+		println "[installToFavouredCraft] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
+	}
+}
+installToFavouredCraft.dependsOn remapJarForRelease
+build.finalizedBy installToFavouredCraft

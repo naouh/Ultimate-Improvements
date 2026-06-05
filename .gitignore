@@ -32,6 +32,7 @@
 !/discordbridge/
 !/worldbackup/
 !/automessages/
+!/mystutils/
 
 # Per-mod ignores: gradle build outputs, IDE files, decompiled reference
 # sources, and third-party jars (those belong to their original authors

@@ -1,0 +1,11 @@
+[
+{
+  "modid": "mystutils",
+  "name": "Myst Utils",
+  "description": "Small Mystcraft add-ons: an /instabilities command that reports the active instability effects of the Age you are in, and a search bar in the Writing Desk that filters notebook pages by symbol name.",
+  "version": "1.0.0",
+  "mcversion": "1.4.7",
+  "authors": ["nao"],
+  "dependencies": ["Mystcraft"]
+}
+]
