@@ -68,6 +68,21 @@ public class CommandInstabilities extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        // A command must never take the server down. If anything throws — a version mismatch where a
+        // helper class is missing (NoClassDefFoundError), Mystcraft reflection blowing up, etc. —
+        // report it to the player and the log instead of letting it propagate into the net handler.
+        try {
+            run(sender, args);
+        } catch (Throwable t) {
+            try {
+                sender.sendChatToPlayer("§c[MystUtils] Command error (see server log): " + t);
+            } catch (Throwable ignored) {}
+            System.err.println("[MystUtils] /instabilities failed:");
+            t.printStackTrace();
+        }
+    }
+
+    private void run(ICommandSender sender, String[] args) {
         if (!(sender instanceof EntityPlayerMP)) {
             sender.sendChatToPlayer("[MystUtils] This command can only be used by a player.");
             return;
