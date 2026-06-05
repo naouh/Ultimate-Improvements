@@ -11,7 +11,6 @@ import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.Mod.PostInit;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
@@ -120,22 +119,43 @@ public class MpsNaoAddonsMod {
         // Resolve MPS ItemComponent static instances.
         ItemStack fieldEmitter   = (ItemStack) cItemComp.getField("fieldEmitter").get(null);
         ItemStack controlCircuit = (ItemStack) cItemComp.getField("controlCircuit").get(null);
-        ItemStack laserHologram  = (ItemStack) cItemComp.getField("laserHologram").get(null);
 
         // Config.copyAndResize(ItemStack, int) for proper sizing.
         Method mResize = cConfig.getMethod("copyAndResize", ItemStack.class, int.class);
 
-        mAddCost.invoke(airStride, mResize.invoke(null, fieldEmitter,   Integer.valueOf(4)));
-        mAddCost.invoke(airStride, mResize.invoke(null, controlCircuit, Integer.valueOf(8)));
-        mAddCost.invoke(airStride, mResize.invoke(null, laserHologram,  Integer.valueOf(2)));
-        mAddCost.invoke(airStride, new ItemStack(Item.diamond, 16));
-        mAddCost.invoke(airStride, new ItemStack(Block.blockDiamond, 2));
+        // Install cost: 10 Force Field Emitters + 10 Control Circuits + 1
+        // GraviSuite Gravitation Engine.
+        mAddCost.invoke(airStride, mResize.invoke(null, fieldEmitter,   Integer.valueOf(10)));
+        mAddCost.invoke(airStride, mResize.invoke(null, controlCircuit, Integer.valueOf(10)));
+
+        ItemStack gravEngine = resolveGravitationEngine();
+        if (gravEngine != null) {
+            mAddCost.invoke(airStride, mResize.invoke(null, gravEngine, Integer.valueOf(1)));
+        } else {
+            System.err.println("[MpsNaoAddons] GraviSuite Gravitation Engine not found; "
+                    + "Air Stride install cost will be incomplete");
+        }
 
         // Config.addModule(IPowerModule)
         Method mAddModule = cConfig.getMethod("addModule", cIPowerModule);
         mAddModule.invoke(null, airStride);
 
         System.out.println("[MpsNaoAddons] Registered MPS module: " + AirStrideHelper.MODULE_NAME);
+    }
+
+    /** Resolve GraviSuite's Gravitation Engine crafting component, exposed as
+     *  the public-static ItemStack {@code gravisuite.GraviSuite.gravitationEngine}.
+     *  Resolved reflectively (and by PostInit, when GraviSuite's items already
+     *  exist) so this mod still loads when GraviSuite isn't installed —
+     *  returns null in that case. */
+    private ItemStack resolveGravitationEngine() {
+        try {
+            Class<?> cGraviSuite = Class.forName("gravisuite.GraviSuite");
+            Object stack = cGraviSuite.getField("gravitationEngine").get(null);
+            return (stack instanceof ItemStack) ? (ItemStack) stack : null;
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     /**
