@@ -44,9 +44,12 @@ public class ClaimMapGui extends GuiScreen {
 
     /** ARGB color per cell sampled from the world; null if not yet sampled. */
     private int[] terrainColors;
-    /** Player's chunk at the moment of sampling — re-sample if it moves. */
+    /** Chunk the terrain was last sampled around — re-sampled when the grid center moves. */
     private int sampleCx = Integer.MIN_VALUE;
     private int sampleCz = Integer.MIN_VALUE;
+    /** Last player chunk we asked the server for a grid around — drives "follow the player". */
+    private int lastReqCx = Integer.MIN_VALUE;
+    private int lastReqCz = Integer.MIN_VALUE;
 
     // ---- Team management panel (right side) ----
 
@@ -83,8 +86,46 @@ public class ClaimMapGui extends GuiScreen {
         int r = ClientPacketHandler.gridRadius;
         if (r >= 2) radius = r;
         recomputeLayout();
-        sampleTerrain();
+
+        EntityClientPlayerMP me = Minecraft.getMinecraft().thePlayer;
+        int cx = me == null ? 0 : (((int) Math.floor(me.posX)) >> 4);
+        int cz = me == null ? 0 : (((int) Math.floor(me.posZ)) >> 4);
+        lastReqCx = cx;
+        lastReqCz = cz;
+        // Optimistically center on the player so the first frame's terrain (sampled below) lines
+        // up with the cells, before the server's grid response (which echoes this same center)
+        // arrives. Overwrites any stale center left over from a previous open.
+        ClientPacketHandler.gridCenterCx = cx;
+        ClientPacketHandler.gridCenterCz = cz;
+        sampleTerrain(cx, cz);
         sendGridRequest();
+    }
+
+    /**
+     * Keep the map glued to the player while it's open. The GUI doesn't pause the game
+     * ({@link #doesGuiPauseGame()} is false) and 1.4.7 leaves a held movement key "pressed" when a
+     * screen opens, so the player can keep walking with the map up. If we never re-centered, the
+     * grid would stay on the chunk the map was opened on while the player drifts away, and every
+     * click would claim a chunk offset from the cell under the cursor.
+     *
+     * So: each time the player crosses into a new chunk, request a fresh grid centered on them;
+     * and re-sample terrain whenever it falls out of sync with the center the latest server grid
+     * used, so the painted terrain and the claim cells never drift apart.
+     */
+    @Override
+    public void updateScreen() {
+        EntityClientPlayerMP me = Minecraft.getMinecraft().thePlayer;
+        if (me == null) return;
+        int cx = ((int) Math.floor(me.posX)) >> 4;
+        int cz = ((int) Math.floor(me.posZ)) >> 4;
+        if (cx != lastReqCx || cz != lastReqCz) {
+            lastReqCx = cx;
+            lastReqCz = cz;
+            sendGridRequest();
+        }
+        if (sampleCx != ClientPacketHandler.gridCenterCx || sampleCz != ClientPacketHandler.gridCenterCz) {
+            sampleTerrain(ClientPacketHandler.gridCenterCx, ClientPacketHandler.gridCenterCz);
+        }
     }
 
     /** Build the right-side button list based on the current team state. */
@@ -581,15 +622,15 @@ public class ClaimMapGui extends GuiScreen {
      * the default gray. Heights are used to apply a brighter/darker shade per cell so relief
      * shows on the map.
      */
-    private void sampleTerrain() {
+    private void sampleTerrain(int centerCx, int centerCz) {
         Minecraft m = Minecraft.getMinecraft();
         if (m == null || m.theWorld == null || m.thePlayer == null) {
             terrainColors = null;
             return;
         }
         World w = m.theWorld;
-        sampleCx = ((int) Math.floor(m.thePlayer.posX)) >> 4;
-        sampleCz = ((int) Math.floor(m.thePlayer.posZ)) >> 4;
+        sampleCx = centerCx;
+        sampleCz = centerCz;
 
         int side = radius * 2 + 1;
         int n = side * side;
