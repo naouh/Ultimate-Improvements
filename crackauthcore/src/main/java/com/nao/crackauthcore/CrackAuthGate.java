@@ -35,6 +35,7 @@ public final class CrackAuthGate {
 	private static volatile Method mGetBukkitEntity; // EntityPlayer -> CraftPlayer
 	private static volatile Method mBukkitGetName;   // CraftPlayer -> String
 	private static volatile Field fChannel;
+	private static volatile Field fData;
 	private static volatile String reflInfo = "ok";
 
 	// --- called by the plugin (reflection) --------------------------------
@@ -96,7 +97,8 @@ public final class CrackAuthGate {
 			}
 
 			String channel = channelOf(packet);
-			boolean drop = channel != null && !isSystemChannel(channel);
+			boolean modChannel = channel != null && !isSystemChannel(channel);
+			boolean drop = modChannel && !isAllowedModSync(channel, packet);
 			lastDecision = "channel=" + channel + " -> " + (drop ? "DROP" : "ALLOW") + " (" + name + ")";
 			if (drop) gateDrops++;
 			return drop;
@@ -146,6 +148,38 @@ public final class CrackAuthGate {
 		try {
 			Object v = fChannel.get(packet);
 			return v == null ? null : v.toString();
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	/**
+	 * Lets IC2's render-data handshake through the gate even while the player is locked. A freshly
+	 * loaded IC2 machine ({@code TileEntityBlock}) renders as a faceless casing until it receives its
+	 * facing/active state, which the client pulls with {@code requestInitialData} (IC2 packet type 0)
+	 * after {@code sendLoginData} (type 4) - both sent on the {@code "ic2"} custom-payload channel.
+	 * Dropping those during the login window left machines blank until a chunk reload. They are
+	 * read-only / setup packets, so allowing them is safe; IC2's <i>action</i> packets - item event
+	 * (1), keybind (2) and tile-entity event (3) - stay dropped.
+	 */
+	private static boolean isAllowedModSync(String channel, Object packet) {
+		if (!"ic2".equalsIgnoreCase(channel)) return false;
+		byte[] data = dataOf(packet);
+		if (data == null) return true;   // can't inspect payload -> fail open (this module is fail-open by design)
+		if (data.length == 0) return false;
+		int type = data[0] & 0xFF;
+		return type == 0 || type == 4;   // requestInitialData / sendLoginData
+	}
+
+	private static byte[] dataOf(Object packet) {
+		if (packet == null) return null;
+		if (fData == null) {
+			fData = find(packet.getClass(), "data", "field_73629_c", "c");
+			if (fData == null) return null;
+		}
+		try {
+			Object v = fData.get(packet);
+			return (v instanceof byte[]) ? (byte[]) v : null;
 		} catch (Throwable t) {
 			return null;
 		}
