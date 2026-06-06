@@ -1,0 +1,62 @@
+// CrackAuthCore - FML coremod that backs the CrackAuth plugin's packet gate (MCPC+ 1.4.7).
+//
+// A plugin can't stop a mod keybind whose action travels as a raw custom-payload packet
+// (Packet250) - those bypass every Bukkit event. This coremod ASM-hooks the single server-side
+// choke point for inbound mod packets, NetServerHandler.handleCustomPayload, and drops the packet
+// when CrackAuth says the player isn't logged in yet. Server-side only: it patches a server class,
+// so it never needs to ship to clients.
+//
+// No Voldeloom here: the transformers reference MC types only as ASM name strings, and CrackAuthGate
+// reaches the player via reflection (java.lang.Object signatures), so there's nothing to remap. We
+// just need FML (cpw.mods.fml.relauncher.*) and ASM on the compile classpath, both of which the
+// server install already provides.
+
+plugins {
+	id 'java'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)   // coremods load very early; keep bytecode Java 6 like the others
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.crackauthcore'
+archivesBaseName = 'crackauthcore'
+version = '1.0.0'
+
+ext.serverDir = "C:/Users/Nao/Desktop/ultimate-remastered"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly files("${serverDir}/mcpc-plus.jar")        // cpw.mods.fml.relauncher.*
+	compileOnly files("${serverDir}/lib/asm-all-4.0.jar")  // org.objectweb.asm.* (exact runtime version)
+}
+
+jar {
+	manifest {
+		attributes(
+			'FMLCorePlugin': 'com.nao.crackauthcore.CrackAuthCorePlugin',
+			'FMLCorePluginContainsFMLMod': 'false'
+		)
+	}
+}
+
+// Coremods load from /coremods, not /plugins. Server-side only (patches NetServerHandler), so we
+// deploy solely to the server install - clients never need it. Missing target fails loudly.
+task installToServerCoremods(type: Copy) {
+	def deployDir = file("${serverDir}/coremods")
+	from jar
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server coremods dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToServerCoremods] Copied ${jar.archivePath.name} -> ${deployDir}"
+	}
+}
+installToServerCoremods.dependsOn jar
+build.finalizedBy installToServerCoremods

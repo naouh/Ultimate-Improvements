@@ -14,10 +14,14 @@ import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.common.network.Player;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
@@ -132,7 +136,31 @@ public final class InventoryDeltaTracker implements ITickHandler {
 		if (inv == null) return out;
 		addAll(out, inv.mainInventory);
 		addAll(out, inv.armorInventory);
+		// Items the player has parked in a crafting grid (their own 2x2 or an open
+		// workbench 3x3) leave mainInventory but are still in their possession. Count
+		// them here so a put-then-take round-trip conserves the total and doesn't
+		// register as a phantom obtain/craft (the put-in-grid-and-pull-back dupe).
+		// The crafting *result* slot is an InventoryCraftResult, not InventoryCrafting,
+		// so the preview output is correctly excluded - a real craft still produces a
+		// genuine +delta on the output item in mainInventory.
+		addOpenCraftingMatrices(out, player);
 		return out;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void addOpenCraftingMatrices(Map<Long, Integer> map, EntityPlayerMP player) {
+		Container open = player.openContainer;
+		if (open == null || open.inventorySlots == null) return;
+		List<Slot> slots = open.inventorySlots;
+		for (int i = 0; i < slots.size(); i++) {
+			Slot slot = slots.get(i);
+			if (slot == null || !(slot.inventory instanceof InventoryCrafting)) continue;
+			ItemStack s = slot.getStack();
+			if (s == null) continue;
+			long key = ((long) s.itemID << 16) | (s.getItemDamage() & 0xFFFFL);
+			Integer prev = map.get(Long.valueOf(key));
+			map.put(Long.valueOf(key), Integer.valueOf((prev == null ? 0 : prev.intValue()) + s.stackSize));
+		}
 	}
 
 	private static void addAll(Map<Long, Integer> map, ItemStack[] arr) {

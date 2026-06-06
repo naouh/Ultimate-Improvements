@@ -1,0 +1,27 @@
+name: CrackAuth
+main: com.nao.crackauth.CrackAuthPlugin
+version: ${version}
+author: Naouh
+description: Simple offline-mode (cracked) login. Players must /register then /login with a password; until then they are frozen.
+commands:
+  register:
+    description: Register an account on this server.
+    usage: /register <password> <password>
+    aliases: [reg]
+  login:
+    description: Log in to your account.
+    usage: /login <password>
+    aliases: [l]
+  changepassword:
+    description: Change your account password.
+    usage: /changepassword <oldPassword> <newPassword>
+    aliases: [changepass, cp]
+  crackauth:
+    description: CrackAuth admin commands.
+    usage: /crackauth <reload|register|unregister|changepassword|info>
+    aliases: [auth]
+    permission: crackauth.admin
+permissions:
+  crackauth.admin:
+    description: Manage CrackAuth (reload, force register/unregister, change others' passwords).
+    default: op

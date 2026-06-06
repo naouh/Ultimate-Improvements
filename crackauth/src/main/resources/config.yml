@@ -1,0 +1,31 @@
+# CrackAuth - simple offline-mode (cracked) authentication for MCPC+ 1.4.7.
+#
+# The server runs in offline mode, so anyone can join under any name. To stop impersonation,
+# every player must /register a password the first time, then /login with it on each connection.
+# Until they are logged in they are "frozen": they can't move, interact, break/place blocks, use
+# the inventory, chat, take damage, or run any command other than /login and /register.
+#
+# Passwords are stored in accounts.yml as salted PBKDF2-SHA256 hashes (never in plain text).
+
+# Minimum length for a password chosen with /register.
+min-password-length: 4
+
+# How many wrong /login attempts a player gets before being kicked (0 = unlimited).
+max-login-attempts: 5
+
+# Seconds a player has to log in or register before being kicked (0 = no timeout).
+login-timeout-seconds: 60
+
+# Darken the screen of players who aren't logged in yet, so they can't see the world.
+blindness: true
+
+# Seconds between the "please log in / register" reminders shown to unauthenticated players
+# (0 = only show the prompt once, on join).
+reminder-interval-seconds: 8
+
+# Prefix shown in front of CrackAuth chat messages (& colour codes).
+message-prefix: '&8[&bAuth&8]&r '
+
+# Hide passwords from the server console: rewrites the "issued server command: /login <password>"
+# echo (and /register, /changepassword) to "/login ***" so plain-text passwords aren't logged.
+redact-passwords-in-log: true
