@@ -34,7 +34,11 @@ public class TFCFixesCorePlugin implements IFMLLoadingPlugin {
             // Applied Energistics (rv9) under TickThreading: serialize controller network locking
             // onto a single global monitor (kills the cross-region AB-BA deadlock + subnet
             // corruption) and fix the level-emitter visibility race.
-            "com.nao.tfcfixes.asm.AppEngLockTransformer"
+            "com.nao.tfcfixes.asm.AppEngLockTransformer",
+            // Server-side: re-send the open container in full after every window click so the
+            // client's slot view can't stay stale (crafted/grabbed items not showing until you
+            // click again) — the 1.4.7 transaction race, worse under TickThreading.
+            "com.nao.tfcfixes.asm.WindowClickSyncTransformer"
         };
     }
 

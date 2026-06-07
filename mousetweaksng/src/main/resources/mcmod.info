@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "MouseTweaksNG",
+    "name": "Mouse Tweaks NG",
+    "description": "A clean from-scratch reimplementation of Mouse Tweaks for 1.4.7. Hold left-click (empty hand + sneak) to sweep stacks out of a slot, hold left-click on a held stack to merge matching stacks, and hold right-click to distribute one item per slot. Adds a small built-in pacing throttle on its own automated clicks so 1.4.7's one-at-a-time window-click transactions confirm before the next is sent - this stops the visual inventory desync (crafted items not showing until you click) that the old build caused, made worse by TickThreading. Client-side only; reads the GUI's own hovered slot so it works across modded inventories. Configurable per tweak.",
+    "version": "1.0.0",
+    "mcversion": "1.4.7",
+    "url": "",
+    "updateUrl": "",
+    "authors": ["Nao"],
+    "credits": "Original concept by the Mouse Tweaks mod.",
+    "parent": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

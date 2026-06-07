@@ -1,0 +1,74 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.4"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(6)
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.mousetweaksng'
+archivesBaseName = 'mousetweaksng'
+version = '1.0.0'
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+
+	// Pure vanilla/Forge client mod: every type it touches (GuiContainer, Container, Slot,
+	// PlayerControllerMP, ItemStack) is Minecraft itself, which voldeloom provides. Nothing else.
+}
+
+volde {
+}
+
+// Client-only mod, but harmless on the server (a SidedProxy keeps the client classes off the
+// dedicated server), so we drop it in /mods on both sides like the pack's other mods.
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
+]
+
+// The original obfuscated Mouse Tweaks this replaces. We rename it aside so both don't run at once.
+def legacyMouseTweaks = "_1.4.7__Mouse_Tweaks_BETA_4.5.zip"
+
+task installToMods {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installToMods] SKIP (missing): ${dir}"
+				return
+			}
+			def legacy = new File(dir, legacyMouseTweaks)
+			if (legacy.exists()) {
+				def disabled = new File(dir, legacyMouseTweaks + ".disabled")
+				if (legacy.renameTo(disabled)) {
+					println "[installToMods] Disabled legacy ${legacyMouseTweaks}"
+				} else {
+					println "[installToMods] WARN: could not disable ${legacyMouseTweaks} (remove it manually)"
+				}
+			}
+			copy { from src; into dir }
+			println "[installToMods] Copied ${src.name} -> ${dir}"
+		}
+	}
+}
+build.finalizedBy installToMods
