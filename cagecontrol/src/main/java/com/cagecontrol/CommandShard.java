@@ -270,6 +270,7 @@ public class CommandShard extends CommandBase {
         boolean special = false;
         int tier = ReflectSS.getTier(te);
         boolean fromCage = mobType != null && !mobType.isEmpty();
+        int kills;
 
         if (!fromCage) {
             ItemStack held = epm.getCurrentEquippedItem();
@@ -284,11 +285,16 @@ public class CommandShard extends CommandBase {
             int charges = held.getMaxDamage() - held.getItemDamage();
             tier = (int) (Math.log(charges) / Math.log(2.0)) - 5;
             if (tier <= 0) { reply(epm, "Shard not charged enough (tier 1+ required)."); return; }
-            held.stackSize = 0;
+            kills = charges;   // exact soul count, so a recovered shard keeps its tier progress
+            CageActions.consumeHeldShard(epm);
+        } else {
+            // Priming from an already-bound cage: the TE only tracks tier, not the exact count,
+            // so the best we can preserve is the tier base.
+            kills = (int) Math.pow(2.0, tier + 5);
         }
 
         CageData d = new CageData(x, y, z, w.provider.dimensionId,
-                                  epm.username, name, mobType, special, tier);
+                                  epm.username, name, mobType, special, tier, kills);
         d.active = false;  // always start stopped, even if cage was previously active
         reg.put(d);
 

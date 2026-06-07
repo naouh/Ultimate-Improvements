@@ -98,6 +98,19 @@ final class CageActions {
         return target + " is not a co-owner.";
     }
 
+    /**
+     * Consume one held shard after it's been bound into a cage. We must null the emptied slot and
+     * resync the inventory ourselves: the vanilla item-use cleanup that nulls a 0-size stack only
+     * runs inside {@code ItemShard.onItemUse}, not on our command/packet code paths. Just setting
+     * {@code stackSize = 0} left a ghost stack server-side and never told the client, so the shard
+     * stayed visible in the inventory and looked duplicated. {@code decrStackSize} clears the slot
+     * when it empties; {@code detectAndSendChanges} pushes the update to the client.
+     */
+    static void consumeHeldShard(EntityPlayerMP epm) {
+        epm.inventory.decrStackSize(epm.inventory.currentItem, 1);
+        epm.inventoryContainer.detectAndSendChanges();
+    }
+
     /** Anti-spam start/stop cooldown (admins exempt). Returns an error message, or null to proceed. */
     private static String cooldown(CageData d, boolean isAdmin) {
         if (isAdmin) return null;

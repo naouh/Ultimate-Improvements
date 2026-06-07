@@ -62,14 +62,21 @@ public class EventHandlerCage {
     // stopped cage, run `/shard <name> start` first then break the cage normally.
 
     /**
-     * Fixes a SoulShards bug: when a cage is broken, {@code BlockCage.breakBlock} recreates the
-     * dropped shard writing only the {@code mobtype}/{@code mobname} NBT keys — never
-     * {@code specialmob}. So a wither-skeleton cage drops a plain skeleton shard.
+     * Repairs the shard {@code BlockCage.breakBlock} drops when a cage is broken. The drop is an
+     * {@link EntityItem} spawned from within {@code breakBlock}, which runs before the cage
+     * TileEntity is removed (see {@code Chunk.setBlockIDWithMetadata}: breakBlock then
+     * removeBlockTileEntity), so both the cage TE and our registry entry are still readable here.
      *
-     * The shard {@link EntityItem} is spawned from within {@code breakBlock}, which runs before
-     * the cage TileEntity is removed (see {@code Chunk.setBlockIDWithMetadata}: breakBlock then
-     * removeBlockTileEntity). So the cage is still readable here: if it was the {@code special}
-     * (wither) variant, we restore {@code specialmob} on the dropped shard.
+     * Two fixes:
+     * <ol>
+     *   <li><b>specialmob</b> — {@code breakBlock} writes only {@code mobtype}/{@code mobname}, never
+     *       {@code specialmob}, so a wither-skeleton cage drops a plain skeleton shard. Restored for
+     *       any soul cage (registered or not).</li>
+     *   <li><b>kill count</b> — {@code breakBlock} rebuilds the shard at the tier base
+     *       ({@code maxDamage - 2^(tier+5)}), discarding souls earned toward the next tier. For
+     *       cages we registered we stored the exact count, so we rewrite the damage to bring it
+     *       back (e.g. a tier-4 shard at 1000 kills no longer drops back to 512).</li>
+     * </ol>
      */
     @ForgeSubscribe
     public void onEntityJoin(EntityJoinWorldEvent event) {
@@ -82,10 +89,8 @@ public class EventHandlerCage {
         Object shardItem = ReflectSS.soulShardsItem();
         if (shardItem == null || is.getItem() != shardItem) return;
 
-        // Only a bound, non-special shard can have lost its wither flag in transit.
         String type = ReflectSS.getShardType(is);
         if (type == null || type.isEmpty()) return;
-        if (ReflectSS.getShardSpecial(is)) return;
 
         // The drop spawns at cage (x,y,z) + a [0.1,0.9] offset, so floor() recovers the cage pos.
         int x = MathHelper.floor_double(event.entity.posX);
@@ -93,10 +98,22 @@ public class EventHandlerCage {
         int z = MathHelper.floor_double(event.entity.posZ);
         TileEntity te = world.getBlockTileEntity(x, y, z);
         if (!ReflectSS.isSoulCage(te)) return;
-        if (!ReflectSS.getCageSpecial(te)) return;
 
-        NBTTagCompound tag = is.getTagCompound();
-        if (tag == null) { tag = new NBTTagCompound(); is.setTagCompound(tag); }
-        tag.setBoolean("specialmob", true);
+        // (1) Restore the wither flag — only a non-special shard can have lost it in transit.
+        if (!ReflectSS.getShardSpecial(is) && ReflectSS.getCageSpecial(te)) {
+            NBTTagCompound tag = is.getTagCompound();
+            if (tag == null) { tag = new NBTTagCompound(); is.setTagCompound(tag); }
+            tag.setBoolean("specialmob", true);
+        }
+
+        // (2) Restore the exact kill count for cages we registered.
+        CageData d = CageRegistry.get(world).findByPos(x, y, z);
+        if (d != null && d.kills > 0) {
+            int max = is.getMaxDamage();
+            int dmg = max - d.kills;
+            if (dmg < 0) dmg = 0;
+            else if (dmg > max) dmg = max;
+            is.setItemDamage(dmg);
+        }
     }
 }

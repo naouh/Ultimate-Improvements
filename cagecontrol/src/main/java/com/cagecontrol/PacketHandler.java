@@ -207,7 +207,7 @@ public class PacketHandler implements IPacketHandler {
         }
 
         CageData d = new CageData(x, y, z, world.provider.dimensionId,
-                                  epm.username, name, mobType, special, tier);
+                                  epm.username, name, mobType, special, tier, charges);
         reg.put(d);
 
         // Configure the TE: keep mobType set so the spawner visual stays, but block spawning
@@ -222,8 +222,8 @@ public class PacketHandler implements IPacketHandler {
         // Sync TE to client so the spawner renderer picks up the new entity name.
         world.markBlockForUpdate(x, y, z);
 
-        // Consume the shard the way ItemShard.onItemUse did: stackSize = 0.
-        held.stackSize = 0;
+        // Consume the shard and resync the inventory (see CageActions.consumeHeldShard).
+        CageActions.consumeHeldShard(epm);
 
         msg(epm, "Cage '" + name + "' registered. Use /shard " + name + " start to activate.");
     }

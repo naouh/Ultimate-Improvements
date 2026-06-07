@@ -16,6 +16,12 @@ public class CageData {
     public String mobType;
     public boolean special;
     public int tier;
+    /**
+     * Exact soul/kill count of the bound shard ({@code maxDamage - itemDamage}), preserved so a
+     * recovered shard keeps its progress toward the next tier instead of dropping back to the tier
+     * base. 0 means "unknown" (legacy entries / primed from a cage) — restore is then skipped.
+     */
+    public int kills;
     public boolean active;
     /** Additional players granted start/stop/list rights (lowercased). */
     public final Set<String> coOwners = new LinkedHashSet<String>();
@@ -25,10 +31,11 @@ public class CageData {
     public CageData() {}
 
     public CageData(int x, int y, int z, int dim, String owner, String name,
-                    String mobType, boolean special, int tier) {
+                    String mobType, boolean special, int tier, int kills) {
         this.x = x; this.y = y; this.z = z; this.dim = dim;
         this.owner = owner; this.name = name;
         this.mobType = mobType; this.special = special; this.tier = tier;
+        this.kills = kills;
         this.active = false;
     }
 
@@ -67,6 +74,7 @@ public class CageData {
         nbt.setString("mobType", mobType);
         nbt.setBoolean("special", special);
         nbt.setInteger("tier", tier);
+        nbt.setInteger("kills", kills);
         nbt.setBoolean("active", active);
         NBTTagList list = new NBTTagList();
         for (String co : coOwners) list.appendTag(new NBTTagString("co", co));
@@ -83,6 +91,7 @@ public class CageData {
         mobType = nbt.getString("mobType");
         special = nbt.getBoolean("special");
         tier = nbt.getInteger("tier");
+        kills = nbt.getInteger("kills");   // absent on legacy entries -> 0 (restore skipped)
         active = nbt.getBoolean("active");
         coOwners.clear();
         if (nbt.hasKey("coOwners")) {
