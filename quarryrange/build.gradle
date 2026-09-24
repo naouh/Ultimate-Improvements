@@ -17,7 +17,7 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.quarryrange'
 archivesBaseName = 'quarryrange'
-version = '1.0.0'
+version = '1.0.1'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
@@ -44,10 +44,13 @@ volde {
 	// default config; nothing to override.
 }
 
-// Deploy to client + server mods/. The hold/apply logic is server-side, so the server
-// needs the jar too. Missing targets are skipped rather than failing the build.
+// Deploy to the dev client + the pack's mods/ (same targets as the other mods). The hold/apply
+// logic is server-side, so the server needs the jar too. Missing targets are skipped rather than
+// failing the build. Older builds of ourselves are removed first so FML never sees the mod id
+// twice. NOT the unsup-managed "The Favoured Craft" instance: unsup would re-download the indexed
+// version next to the new one and crash on the duplicate — that instance gets it via the pack.
 def deployTargets = [
-	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/The Favoured Craft/minecraft/mods"),
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
 	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
 ]
 
@@ -58,10 +61,15 @@ task installToMods {
 		deployTargets.each { dir ->
 			if (!dir.exists()) {
 				println "[installToMods] SKIP (missing): ${dir}"
-			} else {
-				copy { from src; into dir }
-				println "[installToMods] Copied ${src.name} -> ${dir}"
+				return
 			}
+			dir.listFiles().each { f ->
+				if (f.name ==~ /quarryrange-.*\.jar/ && f.name != src.name && f.delete()) {
+					println "[installToMods] Removed stale ${f.name}"
+				}
+			}
+			copy { from src; into dir }
+			println "[installToMods] Copied ${src.name} -> ${dir}"
 		}
 	}
 }

@@ -6,11 +6,11 @@ import java.lang.reflect.Method;
 import net.minecraft.tileentity.TileEntity;
 
 /**
- * Server-side reflective access to a MineFactory Reloaded machine's harvest area. Unlike
- * {@link com.nao.mfrzone.asm.ZoneAsmHelper} this is ordinary mod code (deobf-remapped), so it can
- * take a {@link TileEntity} directly; it still reaches into MFR by reflection because MFR is not
- * on our compile classpath. Used by the network handler to size the editor grid to the machine's
- * current radius upgrade and to read the area centre.
+ * Server-side reflective access to a MineFactory Reloaded machine's harvest area (Planter,
+ * Harvester and Fertilizer all keep a private {@code HarvestAreaManager _areaManager}). Ordinary
+ * mod code (deobf-remapped) so it can take a {@link TileEntity} directly; it reaches into MFR by
+ * reflection because MFR is not on our compile classpath. Used by the packet handler to read the
+ * radius (upgrade included) and the area centre that the client's laser box is built from.
  */
 public final class MfrReflect {
 

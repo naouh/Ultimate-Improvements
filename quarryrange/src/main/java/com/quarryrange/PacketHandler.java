@@ -41,7 +41,7 @@ public class PacketHandler implements IPacketHandler {
                 } else if (type == PKT_APPLY) {
                     int x = in.readInt(), y = in.readInt(), z = in.readInt();
                     int size = in.readInt(), anchor = in.readByte();
-                    apply(epm, x, y, z, size, anchor, true, false);
+                    apply(epm, x, y, z, size, anchor, true, true);
                 } else if (type == PKT_CANCEL) {
                     int x = in.readInt(), y = in.readInt(), z = in.readInt();
                     apply(epm, x, y, z, Config.defaultSize, QuarryArea.ANCHOR_FRONT, true, true);
@@ -56,7 +56,10 @@ public class PacketHandler implements IPacketHandler {
 
     /**
      * @param commit  true = confirm/cancel (release the hold + reload chunks); false = live preview.
-     * @param ignoreDist used for cancel-on-close, where the player may have stepped away.
+     * @param ignoreDist true for every commit: the quarry is only editable while pending, which the
+     *                   player had to be in range to start, and a commit that is dropped because
+     *                   they got pushed/teleported meanwhile would leave the quarry held for good.
+     *                   Live previews keep the range check.
      */
     private void apply(EntityPlayerMP epm, int x, int y, int z, int size, int anchor,
                        boolean commit, boolean ignoreDist) {

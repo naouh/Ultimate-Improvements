@@ -2,10 +2,10 @@
   {
     "modid": "CageControl",
     "name": "CageControl",
-    "description": "Prevents Soul Cages from auto-spawning. Prompts for a name when activated, owner = player, control via /shard <name> start|stop.",
-    "version": "1.0.0",
+    "description": "Prevents Soul Cages from auto-spawning. Right-click a placed cage with its Soul Shard to name it and become its owner, then start/stop it from the menu (K) or with /shard <name> start|stop. Owners can rename their cages and add co-owners (/shard <name> owner add|remove|list <player>); ops see and control every cage.",
+    "version": "2.0.0",
     "mcversion": "1.4.7",
-    "url": "",
+    "url": "https://github.com/naouh/Ultimate-Improvements",
     "updateUrl": "",
     "authors": ["Nao"],
     "credits": "",

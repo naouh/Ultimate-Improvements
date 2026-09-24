@@ -32,6 +32,6 @@ public class EventHandler {
 
         event.useBlock = Event.Result.DENY;
         event.setCanceled(true);
-        ServerTick.openEditorFor(player, world, event.x, event.y, event.z);
+        ServerTick.openEditorFor(player, world, event.x, event.y, event.z, false);
     }
 }

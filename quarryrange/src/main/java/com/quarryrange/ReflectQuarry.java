@@ -162,6 +162,27 @@ public final class ReflectQuarry {
     }
 
     /**
+     * The quarry's current box as {@code {xMin, yMin, zMin, xMax, yMax, zMax}} (inclusive block
+     * coords, BC's own convention), or null when it isn't initialised yet / can't be read. Works on
+     * both sides: BC syncs the box to the client in its tile update packet.
+     */
+    public static int[] getBox(TileEntity te) {
+        if (!isQuarry(te)) return null;
+        try {
+            Object box = fBox.get(te);
+            if (box == null) return null;
+            Class<?> c = box.getClass();
+            if (!c.getField("initialized").getBoolean(box)) return null;
+            return new int[] {
+                c.getField("xMin").getInt(box), c.getField("yMin").getInt(box), c.getField("zMin").getInt(box),
+                c.getField("xMax").getInt(box), c.getField("yMax").getInt(box), c.getField("zMax").getInt(box)
+            };
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
      * Rewrites the quarry's box and rebuilds its builder/lasers so the new area takes effect.
      *
      * @param reloadChunks when true also re-runs BuildCraft's chunk-loading for the new footprint

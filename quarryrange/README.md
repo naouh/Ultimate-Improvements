@@ -38,4 +38,14 @@ is written to the quarry as its mining area when you close the editor.
 
 ## Build
 
-`./gradlew build` — no third-party jars needed.
+`./gradlew build` — no third-party jars needed. The jar is copied into the dev client instance and
+the pack's `mods/`, replacing any older build.
+
+## Changelog
+
+- **1.0.1** — Re-opening a quarry (empty-hand right-click) starts the editor from its current size
+  and position instead of the defaults. The editor only removes the quarry's own frame lasers while
+  open (it used to wipe every BuildCraft laser within ~130 blocks, including other quarries' frames,
+  until a chunk reload). Confirm/close is always accepted for a pending quarry, so being pushed or
+  teleported while the editor is open can no longer leave it held forever.
+- **1.0.0** — Initial release.

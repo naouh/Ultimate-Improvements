@@ -3,7 +3,7 @@
     "modid": "QuarryRange",
     "name": "QuarryRange",
     "description": "When a BuildCraft Quarry is placed it stays idle and opens an area editor: pick the mining size (min..max, default max) and where the area sits (in front / corner / centered) with a live laser preview. The quarry won't start until you confirm, even if powered.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "mcversion": "1.4.7",
     "url": "",
     "updateUrl": "",

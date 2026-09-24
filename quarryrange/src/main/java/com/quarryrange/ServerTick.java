@@ -95,13 +95,19 @@ public class ServerTick implements ITickHandler {
             if (placer instanceof EntityPlayerMP
                     && QuarryManager.confirmCandidate(dim, x, y, z)
                     && QuarryManager.markHandledIfNew(dim, x, y, z)) {
-                openEditorFor(placer, w, x, y, z);
+                openEditorFor(placer, w, x, y, z, true);
             }
         }
     }
 
-    /** Holds the quarry, drops its native box, and tells the player's client to open the editor. */
-    public static void openEditorFor(EntityPlayer player, World world, int x, int y, int z) {
+    /**
+     * Holds the quarry, drops its native box, and tells the player's client to open the editor.
+     *
+     * @param fresh true for a just-placed quarry (editor starts at the configured default size);
+     *              false when re-opening an existing one, in which case the editor starts from the
+     *              quarry's CURRENT area so what the player sees is what is actually set.
+     */
+    public static void openEditorFor(EntityPlayer player, World world, int x, int y, int z, boolean fresh) {
         if (!(player instanceof EntityPlayerMP)) return;
         int dim = world.provider.dimensionId;
         int meta = world.getBlockMetadata(x, y, z);
@@ -109,6 +115,25 @@ public class ServerTick implements ITickHandler {
         QuarryManager.markPending(dim, x, y, z);
 
         TileEntity te = world.getBlockTileEntity(x, y, z);
+
+        int size = Config.defaultSize;
+        int anchor = QuarryArea.ANCHOR_FRONT;
+        if (!fresh) {
+            int[] b = ReflectQuarry.getBox(te);
+            if (b != null) {
+                size = Config.clamp(Math.max(b[3] - b[0], b[5] - b[2]) + 1);
+                // The anchor is whichever layout reproduces the box; FRONT if none does (a box set
+                // by BC landmarks, say) — the size is still the right one.
+                for (int a = QuarryArea.ANCHOR_FRONT; a <= QuarryArea.ANCHOR_CORNER_RIGHT; a++) {
+                    int[] c = QuarryArea.compute(x, y, z, meta, size, a);
+                    if (c[0] == b[0] && c[2] == b[2] && c[3] == b[3] && c[5] == b[5]) {
+                        anchor = a;
+                        break;
+                    }
+                }
+            }
+        }
+
         // Hold + hide the native box: isAlive=false stops work and makes the client delete its box;
         // inProcess=true stops the client re-creating it each tick. The editor draws its own preview.
         ReflectQuarry.setAlive(te, false);
@@ -117,7 +142,7 @@ public class ServerTick implements ITickHandler {
         ReflectQuarry.sync(te);
 
         PacketHandler.sendOpen((EntityPlayerMP) player, x, y, z, meta,
-                Config.defaultSize, QuarryArea.ANCHOR_FRONT, Config.minSize, Config.maxSize);
+                size, anchor, Config.minSize, Config.maxSize);
     }
 
     @Override

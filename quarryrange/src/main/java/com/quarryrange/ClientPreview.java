@@ -66,18 +66,30 @@ public final class ClientPreview {
     }
 
     /**
-     * Kills any BuildCraft laser ({@code EntityBlock}) sitting in the given box that isn't part of
-     * our own preview — i.e. the quarry's native box and any orphan lasers left by the client
+     * Kills any BuildCraft laser ({@code EntityBlock}) belonging to the quarry's own frame box that
+     * isn't part of our preview — the native box and any orphan lasers left by the client
      * re-creating it before the server's hold flags synced.
+     *
+     * <p>The bounds come from the quarry's current box (BC centres every beam inside its block, so
+     * one block of slack on each side covers them all), never from the maximum size: sweeping a
+     * 64-block radius used to wipe the frames of every other quarry, filler or landmark within ~130
+     * blocks, and BC only re-creates those on a chunk reload.
      */
-    public static void sweepNative(int cx, int cy, int cz, int radius) {
-        if (!init()) return;
-        World w = Minecraft.getMinecraft().theWorld;
-        if (w == null) return;
+    public static void sweepNative(World w, int qx, int qy, int qz) {
+        if (!init() || w == null) return;
         try {
             Class<?> ebCls = Class.forName("buildcraft.core.EntityBlock");
-            double minX = cx - radius - 1, minY = cy - 2,         minZ = cz - radius - 1;
-            double maxX = cx + radius + 1, maxY = cy + radius + 2, maxZ = cz + radius + 1;
+            int[] b = ReflectQuarry.getBox(w.getBlockTileEntity(qx, qy, qz));
+            double minX, minY, minZ, maxX, maxY, maxZ;
+            if (b != null) {
+                minX = b[0] - 1; minY = b[1] - 1; minZ = b[2] - 1;
+                maxX = b[3] + 2; maxY = b[4] + 2; maxZ = b[5] + 2;
+            } else {
+                // Box not synced yet: just the quarry's immediate surroundings (BC's default 11x11
+                // frame sits within 12 blocks of it).
+                minX = qx - 12; minY = qy - 2; minZ = qz - 12;
+                maxX = qx + 13; maxY = qy + 7; maxZ = qz + 13;
+            }
             for (Object o : w.loadedEntityList.toArray()) {
                 if (!ebCls.isInstance(o) || isMine(o)) continue;
                 Entity e = (Entity) o;

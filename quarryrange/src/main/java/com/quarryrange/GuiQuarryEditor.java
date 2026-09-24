@@ -106,8 +106,8 @@ public class GuiQuarryEditor extends GuiScreen {
     /** Live, client-side preview: draw the chosen box with our own laser entities. */
     private void preview() {
         int[] box = QuarryArea.compute(qx, qy, qz, meta, size, anchor);
-        ClientPreview.show(box);                 // our blue box
-        ClientPreview.sweepNative(qx, qy, qz, max); // remove the quarry's native/orphan box around it
+        ClientPreview.show(box);                          // our blue box
+        ClientPreview.sweepNative(mc.theWorld, qx, qy, qz); // remove the quarry's native/orphan box
     }
 
     @Override
