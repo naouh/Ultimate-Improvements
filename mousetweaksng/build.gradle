@@ -17,7 +17,7 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.nao.mousetweaksng'
 archivesBaseName = 'mousetweaksng'
-version = '1.0.0'
+version = '1.0.1'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
@@ -64,6 +64,12 @@ task installToMods {
 					println "[installToMods] Disabled legacy ${legacyMouseTweaks}"
 				} else {
 					println "[installToMods] WARN: could not disable ${legacyMouseTweaks} (remove it manually)"
+				}
+			}
+			// Drop older builds of ourselves first, or FML sees the mod id twice and refuses to start.
+			dir.listFiles().each { f ->
+				if (f.name ==~ /mousetweaksng-.*\.jar/ && f.name != src.name && f.delete()) {
+					println "[installToMods] Removed stale ${f.name}"
 				}
 			}
 			copy { from src; into dir }

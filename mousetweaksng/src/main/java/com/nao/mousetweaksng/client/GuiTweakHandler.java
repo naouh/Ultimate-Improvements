@@ -28,6 +28,11 @@ import org.lwjgl.input.Mouse;
  * automated clicks by {@link Config#minClickGapMs} so 1.4.7's one-transaction-at-a-time
  * window-click protocol confirms each click before the next. That pacing is what stops the visual
  * inventory desync the old jar caused (worse under TickThreading).
+ *
+ * The slot the button is <em>pressed</em> on is never touched: vanilla's own
+ * {@code GuiContainer.mouseClicked} already handles that press, so re-clicking it would double the
+ * action (that is what put two items in the first slot of a right-click drag). We only take over
+ * from the next slot the cursor enters while the button stays held.
  */
 public class GuiTweakHandler implements ITickHandler {
 
@@ -43,6 +48,9 @@ public class GuiTweakHandler implements ITickHandler {
     private Slot lastSlot;
     /** Wall-clock time (ms) of the last automated click, for the pacing throttle. */
     private long lastClickMs;
+    /** Button state seen on the previous frame, to spot the press itself (which vanilla handles). */
+    private boolean prevLeftDown;
+    private boolean prevRightDown;
 
     public void tickStart(EnumSet<TickType> type, Object... data) {}
 
@@ -63,7 +71,7 @@ public class GuiTweakHandler implements ITickHandler {
     private void onRenderTick() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.thePlayer == null) {
-            lastSlot = null;
+            reset();
             return;
         }
 
@@ -71,26 +79,40 @@ public class GuiTweakHandler implements ITickHandler {
         // Only normal container GUIs. The creative inventory has destructive special slots, so
         // (like the original) we leave it alone.
         if (!(screen instanceof GuiContainer) || screen instanceof GuiContainerCreative) {
-            lastSlot = null;
+            reset();
             return;
         }
         GuiContainer gui = (GuiContainer) screen;
 
+        boolean rightDown = Mouse.isButtonDown(MOUSE_RIGHT);
+        boolean leftDown  = Mouse.isButtonDown(MOUSE_LEFT);
+        // A button already held when the GUI opened counts as a press too (prev flags were reset).
+        boolean pressedNow = (rightDown && !prevRightDown) || (leftDown && !prevLeftDown);
+        prevRightDown = rightDown;
+        prevLeftDown  = leftDown;
+
+        if (!rightDown && !leftDown) {
+            lastSlot = null;
+            return;
+        }
+
         // The GUI itself computes the hovered slot every frame in drawScreen; reusing it means we
         // inherit each (modded) GUI's real slot hit-testing instead of re-deriving geometry.
         Slot hovered = GuiReflect.getHoveredSlot(gui);
+
+        // The press itself is vanilla's click (GuiContainer.mouseClicked fires for it, whether it
+        // already ran this frame or runs on the next game tick). Just remember where it landed so
+        // we never re-click that slot; we take over from the next slot the cursor enters.
+        if (pressedNow) {
+            lastSlot = hovered;
+            return;
+        }
+
         if (hovered == null) {        // cursor is over no slot -> allow re-entering the same slot later
             lastSlot = null;
             return;
         }
         if (hovered == lastSlot) {    // already handled this hover
-            return;
-        }
-
-        boolean rightDown = Mouse.isButtonDown(MOUSE_RIGHT);
-        boolean leftDown  = Mouse.isButtonDown(MOUSE_LEFT);
-        if (!rightDown && !leftDown) {
-            lastSlot = null;
             return;
         }
 
@@ -121,6 +143,13 @@ public class GuiTweakHandler implements ITickHandler {
         }
     }
 
+    /** Forget everything when no container GUI is up, so the next GUI starts from a clean state. */
+    private void reset() {
+        lastSlot = null;
+        prevLeftDown = false;
+        prevRightDown = false;
+    }
+
     /**
      * Right-mouse tweak: while holding a stack on the cursor and dragging over slots, drop one
      * item into each (empty slot, or a slot already holding the same item).
@@ -140,7 +169,8 @@ public class GuiTweakHandler implements ITickHandler {
     /**
      * Left-mouse tweaks:
      *  - holding a stack (with-item tweak): shift held -> quick-move matching stacks out; otherwise
-     *    pull a matching stack onto the cursor and drop it back, merging the two, when they fit;
+     *    merge the two stacks onto the cursor when they fit (click once to pour the cursor stack
+     *    into the slot, once more to pick the merged stack back up);
      *  - empty cursor (without-item tweak): shift held -> quick-move swept slots out.
      */
     private boolean handleLeft(Container c, Slot slot, ItemStack cursorStack,
@@ -153,10 +183,12 @@ public class GuiTweakHandler implements ITickHandler {
                 windowClick(c, slot, MOUSE_LEFT, MODE_QUICKMOVE, player);
                 return true;
             }
-            // Merge only when both stacks fit together (matches the original's guard).
-            if (cursorStack.stackSize + slotStack.stackSize <= cursorStack.getMaxStackSize()) {
-                windowClick(c, slot, MOUSE_LEFT, MODE_PICKUP, player); // pick the slot stack up
-                windowClick(c, slot, MOUSE_LEFT, MODE_PICKUP, player); // put it back, merged
+            // Merge only when both stacks fit together, in the slot as well as on the cursor —
+            // otherwise the second click would leave part of it behind.
+            int limit = Math.min(cursorStack.getMaxStackSize(), slot.getSlotStackLimit());
+            if (cursorStack.stackSize + slotStack.stackSize <= limit) {
+                windowClick(c, slot, MOUSE_LEFT, MODE_PICKUP, player); // cursor stack -> slot (merged there)
+                windowClick(c, slot, MOUSE_LEFT, MODE_PICKUP, player); // pick the merged stack back up
                 return true;
             }
             return false;
@@ -169,12 +201,20 @@ public class GuiTweakHandler implements ITickHandler {
         return false;
     }
 
-    /** Same item id, and same damage when the item uses damage as a subtype (tools/dyes/etc.). */
+    /**
+     * Same test vanilla's {@code Container.slotClick} uses to merge: same item id, same damage
+     * when the item uses damage as a subtype (tools/dyes/etc.), and identical NBT. Without the NBT
+     * check a right-click drag over a same-id-but-different-tag stack would make vanilla swap the
+     * two stacks instead of adding one item.
+     */
     private static boolean sameItem(ItemStack a, ItemStack b) {
         if (a.itemID != b.itemID) {
             return false;
         }
-        return !a.getHasSubtypes() || a.getItemDamage() == b.getItemDamage();
+        if (a.getHasSubtypes() && a.getItemDamage() != b.getItemDamage()) {
+            return false;
+        }
+        return ItemStack.areItemStackTagsEqual(a, b);
     }
 
     private static void windowClick(Container c, Slot slot, int button, int mode, EntityPlayer player) {
