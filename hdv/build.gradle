@@ -23,7 +23,7 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.nao.hdv'
 archivesBaseName = 'hdv'
-version = '0.1.0'
+version = '0.1.1'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
@@ -41,7 +41,8 @@ dependencies {
 volde {
 }
 
-// Deploy the remapped (obfuscated) jar to both client and server mods/ folders.
+// Deploy the remapped (obfuscated) jar to both client and server mods/ folders, removing any
+// older build of ourselves first so FML never sees the mod id twice.
 def deployTargets = [
 	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/mods"),
 	file("C:/Users/Nao/Desktop/ultimate-remastered/mods")
@@ -54,10 +55,15 @@ task installMod {
 		deployTargets.each { dir ->
 			if (!dir.exists()) {
 				println "[installMod] SKIP (missing): ${dir}"
-			} else {
-				copy { from src; into dir }
-				println "[installMod] Copied ${src.name} -> ${dir}"
+				return
 			}
+			dir.listFiles().each { f ->
+				if (f.name ==~ /hdv-.*\.jar/ && f.name != src.name && f.delete()) {
+					println "[installMod] Removed stale ${f.name}"
+				}
+			}
+			copy { from src; into dir }
+			println "[installMod] Copied ${src.name} -> ${dir}"
 		}
 	}
 }

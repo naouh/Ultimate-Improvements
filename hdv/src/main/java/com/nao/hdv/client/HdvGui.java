@@ -36,7 +36,7 @@ public class HdvGui extends GuiScreen {
 	private static final int A_MODAL_M10 = 7, A_MODAL_M1 = 8, A_MODAL_P1 = 9, A_MODAL_P10 = 10;
 	private static final int A_MODAL_OK = 11, A_MODAL_CANCEL = 12;
 	private static final int A_SELLSLOT = 13, A_SELL_M1 = 14, A_SELL_P1 = 15, A_SELL_MAX = 16, A_SELL_OK = 17;
-	private static final int A_MINE_PREV = 18, A_MINE_NEXT = 19, A_CANCEL = 20;
+	private static final int A_MINE_PREV = 18, A_MINE_NEXT = 19, A_CANCEL = 20, A_SEARCH = 21;
 
 	private final RenderItem itemRender = new RenderItem();
 
@@ -165,6 +165,7 @@ public class HdvGui extends GuiScreen {
 			case A_PREV:     requestBrowse(ClientPacketHandler.browsePage - 1); break;
 			case A_NEXT:     requestBrowse(ClientPacketHandler.browsePage + 1); break;
 			case A_REFRESH:  requestBrowse(ClientPacketHandler.browsePage); break;
+			case A_SEARCH:   requestBrowse(0); break; // new filter -> first page (like Enter)
 			case A_BUYOPEN:  openBuyModal(b.arg); break;
 			case A_MODAL_M10: buyQty -= 10; clampBuyQty(); break;
 			case A_MODAL_M1:  buyQty -= 1;  clampBuyQty(); break;
@@ -274,7 +275,7 @@ public class HdvGui extends GuiScreen {
 
 	private void drawBuy(int mx, int my) {
 		searchField.drawTextBox();
-		addButton(px + 200, py + 48, 70, 16, 0xFF335577, "Search", A_REFRESH, 0);
+		addButton(px + 200, py + 48, 70, 16, 0xFF335577, "Search", A_SEARCH, 0);
 		addButton(px + 280, py + 48, 70, 16, 0xFF335577, "Refresh", A_REFRESH, 0);
 
 		// column headers
@@ -438,6 +439,10 @@ public class HdvGui extends GuiScreen {
 		itemRender.zLevel = 0.0F;
 		RenderHelper.disableStandardItemLighting();
 		GL11.glDisable(GL11.GL_LIGHTING);
+		// Back to the 2D GUI state (vanilla GuiContainer does the same around its slots). Left
+		// enabled, everything drawn afterwards at z=0 loses the depth test against the icons drawn
+		// at z=100, so the buy modal's dark overlay had the list icons poking through it.
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		GL11.glColor4f(1F, 1F, 1F, 1F);
 	}
 

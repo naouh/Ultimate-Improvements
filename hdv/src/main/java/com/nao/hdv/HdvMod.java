@@ -29,7 +29,7 @@ public class HdvMod {
 
 	public static final String MODID   = "HDV";
 	public static final String NAME    = "Hotel de Vente";
-	public static final String VERSION = "0.1.0";
+	public static final String VERSION = "0.1.1";
 	public static final String CHANNEL = "HDV";
 
 	@Instance(MODID)

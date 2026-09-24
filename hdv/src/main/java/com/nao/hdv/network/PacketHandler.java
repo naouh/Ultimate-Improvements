@@ -132,8 +132,13 @@ public class PacketHandler implements IPacketHandler {
 		if (l.seller != null && l.seller.toLowerCase().contains(q)) return true;
 		if (l.unit != null) {
 			try {
+				// Display names of MODDED items don't translate on the dedicated server (client-only
+				// .lang files), so also match the unlocalized name: "item.ingotCopper" still finds
+				// "copper" even though the server only sees the key.
 				String name = l.unit.getDisplayName();
 				if (name != null && name.toLowerCase().contains(q)) return true;
+				String key = l.unit.getItemName();
+				if (key != null && key.toLowerCase().contains(q)) return true;
 			} catch (Throwable ignored) {}
 		}
 		return false;

@@ -1,10 +1,11 @@
 [{
   "modid": "HDV",
   "name": "Hotel de Vente",
-  "description": "Player auction house with a custom GUI, backed by the Essentials economy.",
-  "version": "0.1.0",
+  "description": "Player auction house with a custom GUI (H key or /hdv), backed by the Essentials economy on MCPC+. Server-authoritative: the client only sends intent, the server validates inventory and money.",
+  "version": "0.1.1",
   "mcversion": "1.4.7",
-  "authorList": ["Nao"],
+  "url": "https://github.com/naouh/Ultimate-Improvements",
+  "authors": ["Nao"],
   "credits": "",
   "dependencies": []
 }]
