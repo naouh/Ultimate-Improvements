@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -32,7 +33,7 @@ import cpw.mods.fml.common.network.NetworkMod;
  */
 @Mod(modid = "NeiAe",
      name = "NEI -> AE Recipe Bridge",
-     version = "1.2.2",
+     version = "1.2.3",
      dependencies = "required-after:NotEnoughItems;required-after:AppliedEnergistics")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false,
             channels = { NeiAeMod.CHANNEL }, packetHandler = ServerHandler.class)
@@ -45,14 +46,25 @@ public class NeiAeMod {
     public void init(FMLInitializationEvent e) {
         // @NetworkMod above already registers ServerHandler — don't re-register
         // here or onPacketData fires twice per packet.
-        registerClientOverlay();
+        //
+        // The NEI overlay is a client GUI feature. MCPC+ happens to ship the
+        // client classes, so the lookup below used to go through on the
+        // dedicated server too — doing nothing useful there, and one missing
+        // class would have surfaced as a NoClassDefFoundError (not the
+        // ClassNotFoundException that was caught) and aborted mod loading.
+        if (FMLCommonHandler.instance().getSide().isClient()) {
+            registerClientOverlay();
+        }
     }
 
     private static void registerClientOverlay() {
         Class<?> guiCls;
-        try { guiCls = Class.forName(TARGET_GUI); }
-        catch (ClassNotFoundException ex) {
-            System.err.println("[NeiAe] AE class not found: " + TARGET_GUI + " — overlay not registered");
+        try {
+            guiCls = Class.forName(TARGET_GUI);
+        } catch (Throwable ex) {
+            // ClassNotFoundException, or a LinkageError from one of its superclasses.
+            System.err.println("[NeiAe] AE class not loadable: " + TARGET_GUI
+                    + " — overlay not registered (" + ex + ")");
             return;
         }
 
@@ -65,8 +77,8 @@ public class NeiAeMod {
         try {
             overlayItf = Class.forName("codechicken.nei.api.IOverlayHandler");
             apiCls     = Class.forName("codechicken.nei.api.API");
-        } catch (ClassNotFoundException ex) {
-            System.err.println("[NeiAe] NEI API not found — overlay not registered");
+        } catch (Throwable ex) {
+            System.err.println("[NeiAe] NEI API not loadable — overlay not registered (" + ex + ")");
             return;
         }
 

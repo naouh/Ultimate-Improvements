@@ -39,7 +39,6 @@ public class ServerHandler implements IPacketHandler {
     private static Method    mGetNetworkIME;
     private static Method    mExtractItems;
     private static Method    mAddItems;
-    private static Method    mDetectChanges;
 
     @Override
     public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player player) {
@@ -74,16 +73,14 @@ public class ServerHandler implements IPacketHandler {
             }
 
             // Empty the whole matrix back into the ME first — slots the new recipe doesn't
-            // fill would otherwise keep whatever was in them from a previous recipe. Slots
-            // the network can't absorb (full, missing addItems) are left alone; the recipe
-            // loop will try again on a per-slot basis below.
+            // fill would otherwise keep whatever was in them from a previous recipe. Whatever
+            // the network refuses (full, or no addItems) stays in its slot; the recipe loop
+            // below retries those slots one by one.
             for (int i = 0; i < matrixSlots.size(); i++) {
                 Slot s = matrixSlots.get(i);
                 ItemStack existing = s.getStack();
                 if (existing == null || existing.stackSize <= 0) continue;
-                if (returnToNetwork(imei, existing)) {
-                    s.putStack(null);
-                }
+                s.putStack(returnToNetwork(imei, existing));
             }
 
             int filled = 0;
@@ -106,13 +103,15 @@ public class ServerHandler implements IPacketHandler {
                 Slot dst = matrixSlots.get(slotIdx);
                 ItemStack existing = dst.getStack();
 
-                // If the slot already holds something, try to push it back into
-                // the ME network first. If that fails (or the network can't
-                // absorb it all), return what we just extracted and skip — better
-                // to leave both items intact than silently destroy the original.
+                // If the slot still holds something, try once more to push it back into
+                // the ME. If the network refuses (all or part of it), keep what it refused
+                // in the slot and hand back what we just extracted — better to leave both
+                // intact than to silently destroy either.
                 if (existing != null && existing.stackSize > 0) {
-                    if (!returnToNetwork(imei, existing)) {
-                        returnToNetwork(imei, extracted);
+                    ItemStack leftover = returnToNetwork(imei, existing);
+                    if (leftover != null) {
+                        dst.putStack(leftover);
+                        giveBack(epm, imei, extracted);
                         missing++;
                         continue;
                     }
@@ -122,9 +121,10 @@ public class ServerHandler implements IPacketHandler {
                 filled++;
             }
 
-            if (mDetectChanges != null) {
-                try { mDetectChanges.invoke(container); } catch (Throwable ignore) {}
-            }
+            // Push the new matrix to the client now rather than on the next player tick.
+            // (Looking this up reflectively by its MCP name never worked — the runtime
+            // method is obfuscated — so the old code silently skipped it.)
+            container.detectAndSendChanges();
 
             String msg = "[NeiAe] " + filled + " ingredients placed";
             if (missing > 0) msg += ", " + missing + " missing from ME";
@@ -136,23 +136,37 @@ public class ServerHandler implements IPacketHandler {
     }
 
     /**
-     * Returns true if the stack was fully accepted by the ME network. If
-     * {@code addItems} isn't available (older AE), throws, or returns a
-     * non-empty leftover, the caller should treat the slot as unsafe to
-     * overwrite — the matrix is left untouched.
+     * Pushes {@code stack} into the ME network and returns what the network refused:
+     * {@code null} when everything was accepted, otherwise the leftover to keep in the
+     * slot. AE may hand back the same instance with a reduced count or a fresh stack,
+     * so callers always store the returned value instead of trusting the original.
+     * Without {@code addItems} (older AE) nothing is moved and the stack comes back
+     * untouched.
      */
-    private static boolean returnToNetwork(Object imei, ItemStack stack) {
-        if (mAddItems == null) return false;
+    private static ItemStack returnToNetwork(Object imei, ItemStack stack) {
+        if (mAddItems == null) return stack;
         try {
             Object leftover = mAddItems.invoke(imei, stack);
             if (leftover instanceof ItemStack && ((ItemStack) leftover).stackSize > 0) {
-                return false;
+                return (ItemStack) leftover;
             }
-            return true;
+            return null;
         } catch (Throwable t) {
             System.err.println("[NeiAe] addItems failed:");
             t.printStackTrace();
-            return false;
+            return stack;
+        }
+    }
+
+    /**
+     * Returns an item we extracted but could not place: ME network first, then the
+     * player's inventory, then dropped at their feet — never discarded.
+     */
+    private static void giveBack(EntityPlayerMP epm, Object imei, ItemStack stack) {
+        ItemStack left = returnToNetwork(imei, stack);
+        if (left == null) return;
+        if (!epm.inventory.addItemStackToInventory(left)) {
+            epm.dropPlayerItem(left);
         }
     }
 
@@ -176,11 +190,6 @@ public class ServerHandler implements IPacketHandler {
                 mAddItems = cMEInventory.getMethod("addItems", ItemStack.class);
             } catch (NoSuchMethodException ignore) {
                 mAddItems = null;
-            }
-            try {
-                mDetectChanges = Container.class.getMethod("detectAndSendChanges");
-            } catch (NoSuchMethodException ignore) {
-                mDetectChanges = null;
             }
             ready = true;
             return true;

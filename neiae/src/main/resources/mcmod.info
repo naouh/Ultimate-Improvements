@@ -3,7 +3,7 @@
     "modid": "NeiAe",
     "name": "NEI -> AE Recipe Bridge",
     "description": "Adds NEI's '?' recipe-overlay shortcut to AE's ME Crafting Terminal. Shift-click the '?' on an NEI recipe while the terminal is open and the ingredients are pulled from the ME network into the 3x3 crafting matrix.",
-    "version": "1.2.1",
+    "version": "1.2.3",
     "mcversion": "1.4.7",
     "url": "",
     "updateUrl": "",
