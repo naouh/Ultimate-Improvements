@@ -1,5 +1,7 @@
 # Minecraft Server Status — Discord Bot
 
+![Bot presence showing the server status](screenshot.png)
+
 A small Discord bot that shows a Minecraft **Java** server's status in its
 presence, e.g. `Playing on T1F (9/512)`. When the server is down it shows
 `Watching T1F (offline)` with a "Do Not Disturb" status.

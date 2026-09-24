@@ -1,0 +1,55 @@
+// ClearLag (nao) - a clean entity/lag cleaner for MCPC+ 1.4.7, replacing bob7l's ClearLag.
+//
+// Plain Java + plugin.yml -> a jar dropped in the server's plugins/ folder. Same recipe as the
+// other plugins here: compiled against the server jar itself (mcpc-plus.jar bundles the whole
+// org.bukkit API) because the old Bukkit 1.4.7 Maven repos are long dead. compileOnly: the server
+// provides those classes at runtime. Zero runtime dependencies.
+//
+// Note: mcpc-plus.jar ships only the Bukkit API (net.minecraft.* is deobfuscated by FML at runtime,
+// not bundled here), so modded-mob classification is done via runtime reflection (see EntityClassifier)
+// with a pure-Bukkit fallback. Nothing net.minecraft.* is referenced at compile time.
+
+plugins {
+	id 'java'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+compileJava.options.release.set(8)   // MCPC+ 1.4.7 runs on Java 8
+compileJava.options.encoding = 'UTF-8'
+
+group = 'com.nao.clearlag'
+archivesBaseName = 'clearlag'
+version = '1.0.0'
+
+// Path to the running server: source of the Bukkit API + where the plugin is deployed.
+ext.serverDir = "C:/Users/Nao/Desktop/ultimate-remastered"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly files("${serverDir}/mcpc-plus.jar")
+}
+
+processResources {
+	filesMatching('plugin.yml') {
+		expand(version: project.version)
+	}
+}
+
+task installToPlugins(type: Copy) {
+	def deployDir = file("${serverDir}/plugins")
+	from jar
+	into deployDir
+	doFirst {
+		if (!deployDir.exists()) {
+			throw new GradleException("Server plugins dir does not exist: " + deployDir)
+		}
+	}
+	doLast {
+		println "[installToPlugins] Copied ${jar.archivePath.name} -> ${deployDir}"
+	}
+}
+installToPlugins.dependsOn jar
+build.finalizedBy installToPlugins

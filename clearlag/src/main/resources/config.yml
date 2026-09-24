@@ -1,0 +1,62 @@
+# ClearLag configuration (nao's clean rewrite).
+#
+# Goal: cut entity lag WITHOUT annoying players. Every X minutes it removes hostile mobs and junk
+# entities, but it KEEPS:
+#   - ground items / XP orbs that are close to a player (so nobody loses a fresh drop),
+#   - all animals, tamed pets, villagers, golems and bosses (so farms/breeders survive),
+#   - anything it can't positively identify as hostile (safe by default - modded passives are spared).
+#
+# Modded mobs: hostility is detected via Minecraft's IMob interface at runtime, so modded monsters
+# (Twilight Forest, etc.) are cleared too. If that ever can't load, it falls back to vanilla-only
+# detection (it just skips unknown mobs - it never deletes the wrong thing).
+#
+# Colour codes use '&'. YAML note: spaces only for indentation, never TAB characters.
+
+auto:
+  # Minutes between automatic clears. 0 = no schedule (manual /clearlag clear only).
+  interval-minutes: 20
+
+  # Seconds of warning before each automatic clear (a single broadcast). 0 = no warning.
+  warn-seconds: 30
+
+  # Announce warnings/results to everyone. false = only the console.
+  broadcast: true
+
+  # Limit clearing to these worlds (by name). Empty = every world.
+  worlds: []
+
+protect:
+  # Dropped items AND XP orbs within this many blocks of any player are NEVER removed. 0 = no
+  # protection (remove them regardless). 8 is roughly "in the same area as a player".
+  item-radius: 8.0
+
+  animals: true        # never remove passive animals (cows, pigs, sheep, modded passives...) - farms
+  tamed: true          # never remove tamed pets (wolves, ocelots, horses...)
+  villagers: true      # never remove villagers
+  golems: true         # never remove iron/snow golems
+  bosses: true         # never remove boss mobs (Ender Dragon, Wither, modded bosses)
+  ridden: true         # never remove an entity that has a passenger (occupied mount / minecart)
+
+  # Extra entities to always keep, by type name OR class name (case-insensitive). Useful for a
+  # specific modded mob you want spared. Example: ["villager_golem", "EntityButterfly"].
+  entity-types: []
+
+remove:
+  monsters: true        # hostile mobs (zombies, skeletons, creepers, slimes, ghasts, modded hostiles)
+  items: true           # dropped items on the ground (respects protect.item-radius)
+  xp-orbs: false        # XP orbs (respects protect.item-radius). Off by default - players hate losing XP.
+  arrows: true          # stuck/flying arrows
+  falling-blocks: true  # falling sand/gravel entities
+  boats: false          # off by default (boats are usually placed on purpose)
+  minecarts: false      # off by default (minecarts are usually placed on purpose)
+  projectiles: true     # snowballs, eggs, thrown potions, fireballs, etc.
+
+unloadchunks:
+  # /clearlag unloadchunks keeps chunks within this many chunks of any player (and of spawn) loaded;
+  # everything else is politely asked to unload. The server still keeps chunks that are in use
+  # (e.g. by a chunkloader), so this won't fight ClaimTeam chunkloaders.
+  keep-radius-chunks: 4
+
+messages:
+  warn: "&e[ClearLag] &7Clearing ground items & hostile mobs in &f{seconds}s&7..."
+  cleared: "&e[ClearLag] &aRemoved &f{count}&a entities &7(&f{mobs}&7 mobs, &f{items}&7 items)."

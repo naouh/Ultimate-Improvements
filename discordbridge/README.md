@@ -1,5 +1,7 @@
 # DiscordBridge
 
+![Discord and in-game chat bridged both ways](screenshot.png)
+
 A lightweight **two-way chat bridge** between a Minecraft server and a Discord channel,
 built for **MCPC+ 1.4.7** (Forge + Bukkit hybrid). Drop the jar in `plugins/`, fill in a
 bot token + channel id, and players can talk between the game and Discord both ways.

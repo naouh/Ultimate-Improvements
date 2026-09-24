@@ -1,5 +1,7 @@
 # Server Guide
 
+![Server Guide book](screenshot.png)
+
 An in-game guide book for **MC 1.4.7 / Forge `1.4.7-6.6.2.534`** (FTB Ultimate /
 Ultimate Remastered era), built with
 [Voldeloom](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom).

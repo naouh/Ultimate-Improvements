@@ -1,0 +1,24 @@
+name: ClearLag
+main: com.nao.clearlag.ClearLagPlugin
+version: ${version}
+author: Naouh
+description: Clean entity cleaner - clears hostile mobs & ground items on a timer, keeps animals and items near players.
+commands:
+  clearlag:
+    description: ClearLag base command.
+    usage: /clearlag <clear|check|unloadchunks|reload>
+    aliases: [lagg, cl]
+    permission: clearlag.check
+permissions:
+  clearlag.clear:
+    description: Manually clear entities.
+    default: op
+  clearlag.check:
+    description: View the TPS / entity report.
+    default: op
+  clearlag.unload:
+    description: Unload unused chunks.
+    default: op
+  clearlag.admin:
+    description: Reload the config.
+    default: op
