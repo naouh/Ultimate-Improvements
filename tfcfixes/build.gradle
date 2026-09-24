@@ -17,7 +17,7 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.nao.tfcfixes'
 archivesBaseName = 'tfcfixes'
-version = '1.0.0'
+version = '1.0.1'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
@@ -44,37 +44,31 @@ jar {
 volde {
 }
 
-// Coremods load from /coremods, not /mods. Deploy to both client and server so worldgen
-// (server-side) and any client-side patches stay in sync. Missing targets fail the task
-// loudly so a typo in the path can't silently skip a deploy.
-task installToCoremods(type: Copy) {
-	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods")
-	from(remapJarForRelease.archivePath)
-	into deployDir
-	doFirst {
-		if (!deployDir.exists()) {
-			throw new GradleException("Coremods deploy dir does not exist: " + deployDir)
-		}
-	}
-	doLast {
-		println "[installToCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
-	}
-}
-installToCoremods.dependsOn remapJarForRelease
-build.finalizedBy installToCoremods
+// Coremods load from /coremods, not /mods. Deploy to both the dev client and the pack's
+// coremods so worldgen (server-side) and the client-side patches stay in sync. Missing targets
+// fail the task loudly so a typo in the path can't silently skip a deploy. Older builds of
+// ourselves are removed first so FML never loads the coremod twice.
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
+]
 
-task installToServerCoremods(type: Copy) {
-	def deployDir = file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
-	from(remapJarForRelease.archivePath)
-	into deployDir
-	doFirst {
-		if (!deployDir.exists()) {
-			throw new GradleException("Server coremods dir does not exist: " + deployDir)
+task installToCoremods {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				throw new GradleException("Coremods deploy dir does not exist: " + dir)
+			}
+			dir.listFiles().each { f ->
+				if (f.name ==~ /tfcfixes-.*\.jar/ && f.name != src.name && f.delete()) {
+					println "[installToCoremods] Removed stale ${f.name}"
+				}
+			}
+			copy { from src; into dir }
+			println "[installToCoremods] Copied ${src.name} -> ${dir}"
 		}
 	}
-	doLast {
-		println "[installToServerCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
-	}
 }
-installToServerCoremods.dependsOn remapJarForRelease
-build.finalizedBy installToServerCoremods
+build.finalizedBy installToCoremods

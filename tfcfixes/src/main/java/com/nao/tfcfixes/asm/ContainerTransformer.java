@@ -5,6 +5,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
@@ -29,21 +30,21 @@ import cpw.mods.fml.relauncher.IClassTransformer;
  * <pre>
  *     if (this.inventorySlots.size() == 0) return;
  * </pre>
+ *
+ * <p>Naming-agnostic on purpose: the method is matched by descriptor and the field by whichever
+ * of its MCP / SRG / obf names the class actually declares, with the GETFIELD owner taken from
+ * the class bytes themselves. (The method only ever runs on the client — it handles a
+ * client-bound packet — so the server-side patch is inert either way.)
  */
 public class ContainerTransformer implements IClassTransformer {
 
-    // 1.4.7 obfuscation
-    private static final String CONTAINER_OBF       = "rq";
-    private static final String METHOD_OBF          = "a";
-    private static final String METHOD_DESC_OBF     = "([Lur;)V"; // putStacksInSlots(ItemStack[])
-    private static final String FIELD_OBF           = "c";        // inventorySlots
-    private static final String FIELD_DESC          = "Ljava/util/List;";
-
-    // Deobf names (for MCP / dev environments)
-    private static final String CONTAINER_CLEAN     = "net.minecraft.inventory.Container";
+    private static final String CONTAINER_OBF         = "rq";
+    private static final String CONTAINER_CLEAN       = "net.minecraft.inventory.Container";
     private static final String CONTAINER_CLEAN_SLASH = "net/minecraft/inventory/Container";
-    private static final String METHOD_CLEAN        = "putStacksInSlots";
-    private static final String FIELD_CLEAN         = "inventorySlots";
+
+    /** {@code Container.inventorySlots} under every runtime naming: MCP, SRG (MCPC+), obf 1.4.7. */
+    private static final String[] SLOTS_FIELD = { "inventorySlots", "field_75151_b", "c" };
+    private static final String   FIELD_DESC  = "Ljava/util/List;";
 
     @Override
     public byte[] transform(String name, byte[] bytes) {
@@ -57,14 +58,17 @@ public class ContainerTransformer implements IClassTransformer {
             ClassNode cn = new ClassNode();
             cr.accept(cn, 0);
 
-            String ownerInternal = isObf ? CONTAINER_OBF : CONTAINER_CLEAN_SLASH;
-            String fieldName     = isObf ? FIELD_OBF : FIELD_CLEAN;
+            String field = findSlotsField(cn);
+            if (field == null) {
+                System.err.println("[TFCFixes] Container: inventorySlots field not found under any known name");
+                return bytes;
+            }
 
             int patched = 0;
             for (Object o : cn.methods) {
                 MethodNode m = (MethodNode) o;
                 if (!matchesPutStacksInSlots(m)) continue;
-                injectEmptyGuard(m, ownerInternal, fieldName);
+                injectEmptyGuard(m, cn.name, field);
                 patched++;
             }
 
@@ -75,13 +79,24 @@ public class ContainerTransformer implements IClassTransformer {
 
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
-            System.out.println("[TFCFixes] Patched Container.putStacksInSlots");
+            System.out.println("[TFCFixes] Patched Container.putStacksInSlots (slots field '" + field + "')");
             return cw.toByteArray();
         } catch (Throwable t) {
             System.err.println("[TFCFixes] Container transform failed:");
             t.printStackTrace();
             return bytes;
         }
+    }
+
+    /** The first candidate name that the class really declares as a {@code java.util.List}. */
+    private static String findSlotsField(ClassNode cn) {
+        for (int i = 0; i < SLOTS_FIELD.length; i++) {
+            for (Object o : cn.fields) {
+                FieldNode f = (FieldNode) o;
+                if (SLOTS_FIELD[i].equals(f.name) && FIELD_DESC.equals(f.desc)) return f.name;
+            }
+        }
+        return null;
     }
 
     /**
