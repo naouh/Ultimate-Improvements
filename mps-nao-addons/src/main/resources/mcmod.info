@@ -2,8 +2,8 @@
   {
     "modid": "MpsNaoAddons",
     "name": "MPS Nao Addons",
-    "description": "Coremod for Modular Powersuits. Includes the Flight Control ground-feel fix (bundled from the standalone mpsflightfix mod) and four new modules:\n- Air Stride (helmet): mine at full ground speed while airborne.\n- OmniWrench (power tool): rotate / harvest blocks; recognized as a wrench by BC, MFR, Railcraft and UE via bytecode-injected interfaces.\n- EU Reader (power tool): measure IC2 EU flow at IEnergyTile blocks.\n- TE Multimeter (power tool): delegates to Thermal Expansion's multimeter for conduit/tile readings.\n\nSupersedes the standalone mpsflightfix nilmod — run only one of the two.",
-    "version": "1.0.0",
+    "description": "Coremod for Modular Powersuits. Includes the Flight Control ground-feel fix (bundled from the standalone mpsflightfix mod), fixes MPS stamping an empty 'mmmpsmod' NBT tag on ordinary items (which stopped them stacking), and adds five modules:\n- Air Stride (helmet): mine at full ground speed while airborne.\n- OmniWrench (power tool): rotate / harvest blocks; recognized as a wrench by BC, MFR, Railcraft and UE via bytecode-injected interfaces.\n- EU Reader (power tool): measure IC2 EU flow at IEnergyTile blocks.\n- TE Multimeter (power tool): delegates to Thermal Expansion's multimeter for conduit/tile readings.\n- ME Wireless Terminal (power tool): channels AE's wireless access terminal through the power tool.\n\nSupersedes the standalone mpsflightfix nilmod — run only one of the two.",
+    "version": "1.0.1",
     "mcversion": "1.4.7",
     "url": "https://github.com/naouh/Ultimate-Improvements",
     "updateUrl": "",

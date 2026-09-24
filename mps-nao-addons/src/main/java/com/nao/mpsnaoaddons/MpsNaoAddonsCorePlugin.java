@@ -9,7 +9,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * attribute, instantiates this class before any mod is constructed, and
  * registers the transformers returned by {@link #getASMTransformerClass()}.
  *
- * <p>Five transformers fire on JVM class-load for their respective targets:
+ * <p>Seven transformers fire on JVM class-load for their respective targets:
  * <ul>
  *   <li>{@code PlayerTickHandlerTransformer} — patches MPS' tick handler so
  *       Flight Control no longer applies the ground-friction penalty (the

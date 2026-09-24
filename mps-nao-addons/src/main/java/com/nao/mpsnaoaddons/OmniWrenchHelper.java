@@ -102,12 +102,17 @@ public final class OmniWrenchHelper {
     }
 
     /** Called from injected wrenchUsed/onWhack/onLink/onBoost after the host
-     *  mod has performed its rotation/whack. Drain energy + play swing. */
+     *  mod has performed its rotation/whack. Drain energy + play swing. BC and
+     *  Railcraft call these on both sides, so only the server touches the
+     *  stack's energy — a client-side drain would just be a stale copy until
+     *  the next inventory sync. */
     public static void onWrenchUsed(EntityPlayer player) {
         if (player == null) return;
         ItemStack held = player.getHeldItem();
         if (held == null) return;
-        drain(held, ENERGY_INTERFACE_USE);
+        if (player.worldObj == null || !player.worldObj.isRemote) {
+            drain(held, ENERGY_INTERFACE_USE);
+        }
         player.swingItem();
     }
 

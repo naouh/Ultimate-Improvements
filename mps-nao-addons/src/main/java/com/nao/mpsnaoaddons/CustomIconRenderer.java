@@ -32,7 +32,10 @@ import org.lwjgl.opengl.GL11;
  * to consult this class. Match → render the item here, skip the MuseIcon
  * sprite. No match → original sprite render runs.
  *
- * <p>Client-side only. The class never loads on a dedicated server.
+ * <p>Rendering is client-side only. The class itself does get loaded on a
+ * dedicated server (module registration calls the {@code build*Icon} helpers
+ * on both sides) — that is fine because only {@code ItemMuseIcon} construction
+ * runs there; the GL / RenderItem code is resolved lazily and never executed.
  */
 public final class CustomIconRenderer {
 

@@ -99,7 +99,8 @@ public final class EUReaderHelper {
             Object net = mGetForWorld.invoke(null, world);
             long emitted = (Long) mGetTotalEmitted.invoke(net, tile);
             long sunken  = (Long) mGetTotalSunken.invoke(net, tile);
-            long now     = world.getWorldTime();
+            // Total ticks, not the day clock: /time set would otherwise skew or negate the window.
+            long now     = world.getTotalWorldTime();
             NBTTagCompound nbt = getOrCreateNbt(stack);
 
             if (nbt.getInteger("euLastX") != x

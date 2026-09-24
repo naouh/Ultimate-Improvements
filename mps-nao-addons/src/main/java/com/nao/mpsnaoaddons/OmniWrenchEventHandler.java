@@ -9,15 +9,18 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 
 /**
- * Single right-click-block listener that dispatches to whichever of our
- * power-tool modules is the active mode: OmniWrench (rotate/wrench),
- * EU Reader (IC2), or TE Multimeter.
+ * Single right-click listener that dispatches to whichever of our power-tool
+ * modules is the active mode: OmniWrench (rotate/wrench), EU Reader (IC2) and
+ * TE Multimeter on a block click, ME Wireless Terminal on an air click.
  *
  * <p>We do the dispatch here rather than via MPS' onRightClick because
- * MPS' RightClickPowerModule only fires for AIR clicks. The ItemPowerTool's
- * onItemUseFirst is hard-coded to handle the built-in "Multimeter" module
- * only — there is no general "active right-click module sees the block"
- * hook to plug into.
+ * MPS' RightClickPowerModule only fires for AIR clicks, and we can't subclass
+ * it from a Voldeloom build anyway (its {@code onRightClick} signature uses
+ * obfuscated MC types). The ItemPowerTool's onItemUseFirst is hard-coded to
+ * handle the built-in "Multimeter" module only — there is no general "active
+ * right-click module sees the block" hook to plug into. Both
+ * {@code RIGHT_CLICK_BLOCK} and {@code RIGHT_CLICK_AIR} are fired server-side
+ * in Forge 1.4.7 ({@code ItemInWorldManager} / {@code NetServerHandler}).
  *
  * <p>OmniWrench's BC/Railcraft/TE-conduit support also goes through interface
  * methods bytecode-injected into ItemPowerTool by

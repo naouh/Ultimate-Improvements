@@ -196,39 +196,20 @@ public final class MEWirelessHelper {
     }
 
     /**
-     * Called from ASM-injected {@code ItemPowerTool.onItemRightClick} for
-     * RIGHT_CLICK_AIR support. Forge 1.4.7's {@code PlayerInteractEvent
-     * .RIGHT_CLICK_AIR} doesn't fire server-side reliably, so the regular
-     * event listener path can't be trusted for opening the wireless GUI;
-     * the injected override calls in here directly. Server-side only.
-     */
-    public static void handleRightClickAir(ItemStack stack, World world, EntityPlayer player) {
-        if (stack == null || world == null || player == null) return;
-        if (world.isRemote) return;
-        boolean active = isActiveOnPowerTool(stack);
-        System.out.println("[MEWireless] onItemRightClick AIR: active=" + active);
-        if (active) {
-            boolean ok = handleClick(player, world, stack);
-            System.out.println("[MEWireless] handleClick result=" + ok);
-        }
-    }
-
-    /**
-     * Right-click handler. Drains energy then forwards to AE's
-     * {@code ItemWirelessTerminal.onItemRightClick(stack, world, player)},
-     * which reads the NBT off our power tool and (if linked + in range)
-     * opens the wireless ME GUI for that controller.
+     * Right-click handler, reached from {@link OmniWrenchEventHandler} on the
+     * server-side {@code PlayerInteractEvent.RIGHT_CLICK_AIR} (fired by
+     * {@code NetServerHandler.handlePlace} for an empty-air use). Drains energy
+     * then forwards to AE's {@code ItemWirelessTerminal.onItemRightClick(stack,
+     * world, player)}, which reads the NBT off our power tool and (if linked +
+     * in range) opens the wireless ME GUI for that controller.
      */
     public static boolean handleClick(EntityPlayer player, World world, ItemStack stack) {
         init();
         if (mOnItemRightClick == null || wirelessSubItem == null) {
-            System.out.println("[MEWireless] handleClick: AE unavailable (method="
-                    + mOnItemRightClick + " subItem=" + wirelessSubItem + ")");
-            return false;
+            return false; // AE absent — init() already logged it once
         }
         try {
             if (!OmniWrenchHelper.drain(stack, ENERGY_PER_USE)) {
-                System.out.println("[MEWireless] handleClick: insufficient energy");
                 return false;
             }
             // Invoke on the AE sub-item instance, not the multi-item wrapper.
@@ -237,7 +218,7 @@ public final class MEWirelessHelper {
             mOnItemRightClick.invoke(wirelessSubItem, stack, world, player);
             return true;
         } catch (Throwable t) {
-            System.out.println("[MEWireless] handleClick: invoke threw " + t);
+            System.err.println("[MEWireless] handleClick: AE onItemRightClick threw:");
             t.printStackTrace();
             return false;
         }

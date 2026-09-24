@@ -16,8 +16,8 @@ import cpw.mods.fml.relauncher.IClassTransformer;
  * breathe. With multiple Tool-category modules installed (OmniWrench,
  * EU Reader, TE Multimeter), the stock 256x200 window crowds icons against
  * the tweak frame and pushes long hover descriptions over the icon grid.
- * Bumping to 320x220 keeps every frame at its existing relative offsets
- * but gives ~25% more horizontal pixels per row.
+ * Bumping to 384x232 ({@link #NEW_X} x {@link #NEW_Y}) keeps every frame at
+ * its existing relative offsets but gives 50% more horizontal pixels per row.
  *
  * <p>Strategy: walk {@code GuiTinkerTable.<init>}, find the {@code PUTFIELD}
  * instructions for {@code xSize}/{@code ySize}, and rewrite the integer push

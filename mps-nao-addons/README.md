@@ -28,4 +28,16 @@ MPS build the pack ships.
 
 ## Build
 
-`./gradlew build` — no third-party jars needed.
+`./gradlew build` — compiles against `libs/ModularPowersuits.jar` (see the
+[root README](../README.md#setup-third-party-jars)) and copies the jar into the client instance and
+the pack's `coremods/`, replacing any older build.
+
+## Changelog
+
+- **1.0.1** — Inventory de-stamp sweep now runs for every player (a shared tick counter only ever
+  reached the same player when the player count divided 20). Wrench energy is only drained
+  server-side (BuildCraft / Railcraft call the interface on both sides). EU Reader measures with the
+  total world time instead of the day clock. Dropped the dead `onItemRightClick` injection (MPS
+  already overrides it; air clicks go through Forge's `RIGHT_CLICK_AIR`) and its per-click log
+  spam.
+- **1.0.0** — Initial release.

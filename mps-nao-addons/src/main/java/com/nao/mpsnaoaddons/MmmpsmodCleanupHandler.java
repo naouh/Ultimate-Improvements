@@ -22,10 +22,8 @@ import net.minecraft.item.ItemStack;
  */
 public final class MmmpsmodCleanupHandler implements ITickHandler {
 
-    /** ~1s between sweeps of a given player (PLAYER tick fires ~20x/s). */
+    /** ~1s between sweeps of a given player (PLAYER tick fires ~20x/s per player). */
     private static final int INTERVAL = 20;
-
-    private int tickCount;
 
     @Override
     public void tickStart(EnumSet<TickType> type, Object... tickData) {
@@ -34,10 +32,13 @@ public final class MmmpsmodCleanupHandler implements ITickHandler {
     @Override
     public void tickEnd(EnumSet<TickType> type, Object... tickData) {
         if (!type.contains(TickType.PLAYER)) return;
-        if (++tickCount < INTERVAL) return;
-        tickCount = 0;
         if (tickData == null || tickData.length == 0 || !(tickData[0] instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) tickData[0];
+        // Gate on the player's own tick counter, not a shared one: PLAYER ticks are interleaved
+        // across every online player, so a shared "every 20th call" counter always landed on the
+        // same player whenever the player count divided 20 (2, 4, 5, 10...) and the others were
+        // never swept.
+        if (player.ticksExisted % INTERVAL != 0) return;
         try {
             sweep(player.inventory.mainInventory);
             sweep(player.inventory.armorInventory);

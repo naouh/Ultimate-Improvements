@@ -17,7 +17,7 @@ compileJava.options.encoding = 'UTF-8'
 
 group = 'com.nao.mpsnaoaddons'
 archivesBaseName = 'mps-nao-addons'
-version = '1.0.0'
+version = '1.0.1'
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
@@ -54,21 +54,32 @@ volde {
 }
 
 // After every successful build, drop the remapped jar into the PrismLauncher
-// "Ultimate Remastered" instance's coremods folder so we can test without an
-// extra manual copy. The remapped artifact is the one without the -dev suffix
-// (remapJarForRelease produces it from the -dev jar).
-task installToCoremods(type: Copy) {
-	def deployDir = file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods")
-	from(remapJarForRelease.archivePath)
-	into deployDir
-	doFirst {
-		if (!deployDir.exists()) {
-			throw new GradleException("Coremods deploy dir does not exist: " + deployDir)
+// "Ultimate Remastered" instance's coremods folder and the pack's coremods
+// folder (both sides run it), replacing any older build of ourselves so FML
+// never sees the mod id twice. The remapped artifact is the one without the
+// -dev suffix (remapJarForRelease produces it from the -dev jar).
+def deployTargets = [
+	file("C:/Users/Nao/AppData/Roaming/PrismLauncher/instances/Ultimate Remastered/minecraft/coremods"),
+	file("C:/Users/Nao/Desktop/ultimate-remastered/coremods")
+]
+
+task installToCoremods {
+	dependsOn remapJarForRelease
+	doLast {
+		def src = remapJarForRelease.archivePath
+		deployTargets.each { dir ->
+			if (!dir.exists()) {
+				println "[installToCoremods] SKIP (missing): ${dir}"
+				return
+			}
+			dir.listFiles().each { f ->
+				if (f.name ==~ /mps-nao-addons-.*\.jar/ && f.name != src.name && f.delete()) {
+					println "[installToCoremods] Removed stale ${f.name}"
+				}
+			}
+			copy { from src; into dir }
+			println "[installToCoremods] Copied ${src.name} -> ${dir}"
 		}
 	}
-	doLast {
-		println "[installToCoremods] Copied ${remapJarForRelease.archivePath.name} -> ${deployDir}"
-	}
 }
-installToCoremods.dependsOn remapJarForRelease
 build.finalizedBy installToCoremods

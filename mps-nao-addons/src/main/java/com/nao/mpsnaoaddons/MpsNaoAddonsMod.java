@@ -31,7 +31,7 @@ import cpw.mods.fml.relauncher.Side;
  */
 @Mod(modid = "MpsNaoAddons",
      name = "MPS Nao Addons",
-     version = "1.0.0",
+     version = "1.0.1",
      dependencies = "required-after:mmmPowersuits;after:AppliedEnergistics")
 public class MpsNaoAddonsMod {
 
