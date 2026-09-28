@@ -1,19 +1,11 @@
 package com.nao.tfcfixes.asm;
 
-import java.util.ArrayList;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import cpw.mods.fml.relauncher.IClassTransformer;
 
@@ -126,51 +118,8 @@ public class AppEngLockTransformer implements IClassTransformer {
         return n;
     }
 
-    /**
-     * Rewrites a method so its whole body runs inside {@code synchronized (AppEngLock.LOCK)}.
-     *
-     * <p>Strips {@code ACC_SYNCHRONIZED} (so the instance monitor is no longer taken), enters the
-     * shared monitor at entry, exits it before every {@code return}, and adds a catch-all handler
-     * that exits the monitor and rethrows on any uncaught throwable. The lock is a {@code static final}
-     * field, so it is re-loaded for each {@code monitorexit} rather than spilled to a local — no new
-     * local slots, and {@link ClassWriter#COMPUTE_MAXS} fixes up {@code maxStack}. The catch-all is
-     * appended <em>last</em> in the table so the method's own handlers keep priority.
-     */
+    /** Rewrites a method so its whole body runs inside {@code synchronized (AppEngLock.LOCK)}; see {@link MonitorWrap}. */
     private static void wrapWithGlobalLock(MethodNode m) {
-        m.access &= ~Opcodes.ACC_SYNCHRONIZED;
-
-        InsnList insns = m.instructions;
-        LabelNode start   = new LabelNode();
-        LabelNode handler = new LabelNode();
-
-        // monitorenter at entry: GETSTATIC LOCK; MONITORENTER; start:
-        InsnList pre = new InsnList();
-        pre.add(new FieldInsnNode(Opcodes.GETSTATIC, LOCK_OWNER, LOCK_NAME, LOCK_DESC));
-        pre.add(new InsnNode(Opcodes.MONITORENTER));
-        pre.add(start);
-        insns.insert(pre);
-
-        // monitorexit before every normal return
-        for (AbstractInsnNode insn = insns.getFirst(); insn != null; insn = insn.getNext()) {
-            int op = insn.getOpcode();
-            if (op >= Opcodes.IRETURN && op <= Opcodes.RETURN) {
-                InsnList rel = new InsnList();
-                rel.add(new FieldInsnNode(Opcodes.GETSTATIC, LOCK_OWNER, LOCK_NAME, LOCK_DESC));
-                rel.add(new InsnNode(Opcodes.MONITOREXIT));
-                insns.insertBefore(insn, rel);
-            }
-        }
-
-        // catch-all handler (after the body): monitorexit + rethrow
-        InsnList post = new InsnList();
-        post.add(handler);
-        post.add(new FieldInsnNode(Opcodes.GETSTATIC, LOCK_OWNER, LOCK_NAME, LOCK_DESC));
-        post.add(new InsnNode(Opcodes.MONITOREXIT));
-        post.add(new InsnNode(Opcodes.ATHROW));
-        insns.add(post);
-
-        if (m.tryCatchBlocks == null) m.tryCatchBlocks = new ArrayList<TryCatchBlockNode>();
-        // end == handler label: protect [start, handler), handler itself is outside the range.
-        m.tryCatchBlocks.add(new TryCatchBlockNode(start, handler, handler, null));
+        MonitorWrap.withStaticField(m, LOCK_OWNER, LOCK_NAME, LOCK_DESC);
     }
 }

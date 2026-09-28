@@ -38,7 +38,11 @@ public class TFCFixesCorePlugin implements IFMLLoadingPlugin {
             // Server-side: re-send the open container in full after every window click so the
             // client's slot view can't stay stale (crafted/grabbed items not showing until you
             // click again) — the 1.4.7 transaction race, worse under TickThreading.
-            "com.nao.tfcfixes.asm.WindowClickSyncTransformer"
+            "com.nao.tfcfixes.asm.WindowClickSyncTransformer",
+            // ComputerCraft 1.5 under TickThreading: Computer.setPeripheral (neighbour change on the
+            // server thread) and Computer.advance (region worker) took the Computer / peripheral-array
+            // monitors in opposite order -> AB-BA deadlock. setPeripheral now takes Computer first.
+            "com.nao.tfcfixes.asm.CcPeripheralLockTransformer"
         };
     }
 
