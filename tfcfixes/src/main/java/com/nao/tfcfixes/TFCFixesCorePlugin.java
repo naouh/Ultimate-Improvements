@@ -42,7 +42,12 @@ public class TFCFixesCorePlugin implements IFMLLoadingPlugin {
             // ComputerCraft 1.5 under TickThreading: Computer.setPeripheral (neighbour change on the
             // server thread) and Computer.advance (region worker) took the Computer / peripheral-array
             // monitors in opposite order -> AB-BA deadlock. setPeripheral now takes Computer first.
-            "com.nao.tfcfixes.asm.CcPeripheralLockTransformer"
+            "com.nao.tfcfixes.asm.CcPeripheralLockTransformer",
+            // Twilight Forest mazestone destroys IC2 electric tools (GraviSuite Vajra): make it
+            // unminable with them, and refuse the Vajra's accurate right-click mode on it.
+            // (Ported from UpsilonFixes.)
+            "com.nao.tfcfixes.asm.MazestoneVajraTransformer",
+            "com.nao.tfcfixes.asm.ItemVajraTransformer"
         };
     }
 
